@@ -59,9 +59,9 @@ ZOOM_FOLLOW = True     # Set to False for fixed view (don't use zoom)
 
 TRACK_DETAIL_STEP = 21/SCALE
 TRACK_TURN_RATE = 0.31
-TRACK_WIDTH = 60/SCALE # 40 de base
-BORDER = 12/SCALE        # 8 de base
-BORDER_MIN_COUNT = 10   # 4 de base
+TRACK_WIDTH = 60/SCALE 
+BORDER = 12/SCALE       
+BORDER_MIN_COUNT = 10   
 Amount_Left = 0
 
 OBSTACLE_PROB = 1/50
@@ -93,6 +93,7 @@ class FrictionDetector(contactListener):
         if not tile:
             return
 
+        # Change la couleur des tiles parcourues
         tile.color[0] = ROAD_COLOR[0]
         tile.color[1] = ROAD_COLOR[1]
         tile.color[2] = ROAD_COLOR[2]
@@ -111,6 +112,7 @@ class FrictionDetector(contactListener):
 
 
 class CarRacing(gym.Env, EzPickle):
+    
     metadata = {
         'render.modes': ['human', 'rgb_array', 'state_pixels'],
         'video.frames_per_second': FPS
@@ -118,6 +120,7 @@ class CarRacing(gym.Env, EzPickle):
 
     def __init__(self, verbose=1):
         EzPickle.__init__(self)
+        self.obstacles_positions = [] # sera rempli de 4-tuples contenant la position de chaque mur
         self.seed()
         self.contactListener_keepref = FrictionDetector(self)
         self.world = Box2D.b2World(
@@ -161,13 +164,11 @@ class CarRacing(gym.Env, EzPickle):
 
     def _create_track(self):
 
-        # TODO: les tiles représentent les parties de la route qui change de couleur quand on 
-        # les traverse : il faudra mettre un obstacles sur une tile.
-
         CHECKPOINTS = 12 # 12 = nombre de virages (11) + le départ (1)
 
         # Create checkpoints
         checkpoints = []
+        self.obstacles_positions = []
         for c in range(CHECKPOINTS):
             noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
             alpha = 2 * math.pi * c / CHECKPOINTS + noise
@@ -343,15 +344,11 @@ class CarRacing(gym.Env, EzPickle):
                 
 
                 obs1_l = (x1 - (TRACK_WIDTH-deriv_left)*math.cos(beta1), y1 - (TRACK_WIDTH-deriv_left)*math.sin(beta1))
-                
-                
                 obs1_r = (x1 + (TRACK_WIDTH-deriv_right)*math.cos(beta1), y1 + (TRACK_WIDTH-deriv_right)*math.sin(beta1))
-                
-                
                 obs2_l = (x2 - (TRACK_WIDTH-deriv_left)*math.cos(beta2), y2 - (TRACK_WIDTH-deriv_left)*math.sin(beta2))
-                
                 obs2_r = (x2 + (TRACK_WIDTH-deriv_right)*math.cos(beta2), y2 + (TRACK_WIDTH-deriv_right)*math.sin(beta2))
-
+                
+                self.obstacles_positions.append((obs1_l, obs1_r, obs2_r, obs2_l))
                 vertices = [obs1_l, obs1_r, obs2_r, obs2_l]
                 obstacle = fixtureDef(
                     shape=polygonShape(vertices=vertices)
@@ -365,10 +362,6 @@ class CarRacing(gym.Env, EzPickle):
                         ([obs1_l, obs1_r, obs2_r, obs2_l], obstacle.color)
                     )
             last_obstacle -= 1
-                
-                
-            
-            
             
         self.track = track
         return True
@@ -419,6 +412,31 @@ class CarRacing(gym.Env, EzPickle):
             if self.tile_visited_count == len(self.track):
                 done = True
             x, y = self.car.hull.position
+
+
+            # Vérification des collisions:
+            for i in range(len(self.obstacles_positions)):
+                obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[i]
+                x1, y1 = obs1_l
+                x2, y2 = obs1_r
+                x3, y3 = obs2_l
+                x4, y4 = obs2_r
+
+
+                # Les lignes de la condition ci-dessous suit le format
+                # - bordure inférieure
+                # - bordure gauche
+                # - bordure droite
+                # - bordure supérieure
+                if (    (((x2-x1)*(y-y1)) - ((x-x1)*(y2-y1))) <= 0
+                    and (((x1-x3)*(y-y3)) - ((x-x3)*(y1-y3))) <= 0
+                    and (((x3-x4)*(y-y4)) - ((x-x4)*(y3-y4))) <= 0
+                    and (((x4-x2)*(y-y2)) - ((x-x2)*(y4-y2))) <= 0    ):
+
+                        print("HAHA t'as touché le mur numéro{}".format(i))
+                        done = True
+                        step_reward -= 100                             # valeur au pif ici, voir ce qu'on voudra 
+
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
                 done = True
                 step_reward = -100
