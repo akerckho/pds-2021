@@ -54,15 +54,17 @@ SCALE = 6.0             # Track scale
 TRACK_RAD = 900/SCALE   # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000/SCALE  # Game over boundary
 FPS = 50                # Frames per second
-ZOOM = 2.7              # Camera zoom
-ZOOM_FOLLOW = True      # Set to False for fixed view (don't use zoom)
+ZOOM = 2                # Camera zoom
+ZOOM_FOLLOW = True     # Set to False for fixed view (don't use zoom) 
 
 TRACK_DETAIL_STEP = 21/SCALE
 TRACK_TURN_RATE = 0.31
-TRACK_WIDTH = 40/SCALE
-BORDER = 8/SCALE
-BORDER_MIN_COUNT = 4
+TRACK_WIDTH = 60/SCALE # 40 de base
+BORDER = 12/SCALE        # 8 de base
+BORDER_MIN_COUNT = 10   # 4 de base
 Amount_Left = 0
+
+OBSTACLE_PROB = 1/50
 
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
@@ -158,7 +160,11 @@ class CarRacing(gym.Env, EzPickle):
         self.car.destroy()
 
     def _create_track(self):
-        CHECKPOINTS = 12
+
+        # TODO: les tiles représentent les parties de la route qui change de couleur quand on 
+        # les traverse : il faudra mettre un obstacles sur une tile.
+
+        CHECKPOINTS = 12 # 12 = nombre de virages (11) + le départ (1)
 
         # Create checkpoints
         checkpoints = []
@@ -287,8 +293,10 @@ class CarRacing(gym.Env, EzPickle):
             for neg in range(BORDER_MIN_COUNT):
                 border[i-neg] |= border[i]
 
-        # Create tiles
+        # Create tiles and obstacles 
+        last_obstacle = 15 # pour que le début de course se passe sans obstacle
         for i in range(len(track)):
+
             alpha1, beta1, x1, y1 = track[i]
             alpha2, beta2, x2, y2 = track[i-1]
             road1_l = (x1 - TRACK_WIDTH*math.cos(beta1), y1 - TRACK_WIDTH*math.sin(beta1))
@@ -296,6 +304,7 @@ class CarRacing(gym.Env, EzPickle):
             road2_l = (x2 - TRACK_WIDTH*math.cos(beta2), y2 - TRACK_WIDTH*math.sin(beta2))
             road2_r = (x2 + TRACK_WIDTH*math.cos(beta2), y2 + TRACK_WIDTH*math.sin(beta2))
             vertices = [road1_l, road1_r, road2_r, road2_l]
+
             self.fd_tile.shape.vertices = vertices
             t = self.world.CreateStaticBody(fixtures=self.fd_tile)
             t.userData = t
@@ -324,6 +333,43 @@ class CarRacing(gym.Env, EzPickle):
                         (1, 1, 1) if i % 2 == 0 else (1, 0, 0)
                     )
                 )
+            
+            rd = np.random.rand()
+            if (rd < OBSTACLE_PROB) and (last_obstacle <= 0): # i > 15 pour que la course soit toujours faisable
+                last_obstacle = 8 
+
+                deriv_left = np.random.randint(TRACK_WIDTH)
+                deriv_right = TRACK_WIDTH - deriv_left
+                
+
+                obs1_l = (x1 - (TRACK_WIDTH-deriv_left)*math.cos(beta1), y1 - (TRACK_WIDTH-deriv_left)*math.sin(beta1))
+                
+                
+                obs1_r = (x1 + (TRACK_WIDTH-deriv_right)*math.cos(beta1), y1 + (TRACK_WIDTH-deriv_right)*math.sin(beta1))
+                
+                
+                obs2_l = (x2 - (TRACK_WIDTH-deriv_left)*math.cos(beta2), y2 - (TRACK_WIDTH-deriv_left)*math.sin(beta2))
+                
+                obs2_r = (x2 + (TRACK_WIDTH-deriv_right)*math.cos(beta2), y2 + (TRACK_WIDTH-deriv_right)*math.sin(beta2))
+
+                vertices = [obs1_l, obs1_r, obs2_r, obs2_l]
+                obstacle = fixtureDef(
+                    shape=polygonShape(vertices=vertices)
+                )
+                
+                obstacle.userData = obstacle    
+                obstacle.color = [0.1568, 0.598, 0.2862, 0]
+                obstacle.collided = False
+                #obstacle.fixtures[0].sensor = True # je sais pas ce que ça représente
+                self.road_poly.append(
+                        ([obs1_l, obs1_r, obs2_r, obs2_l], obstacle.color)
+                    )
+            last_obstacle -= 1
+                
+                
+            
+            
+            
         self.track = track
         return True
 
@@ -414,8 +460,11 @@ class CarRacing(gym.Env, EzPickle):
         if "t" not in self.__dict__:
             return  # reset() not called yet
 
-        # Animate zoom first second:
-        zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
+        if ZOOM_FOLLOW:
+            # Animate zoom first second:
+            zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
+        else:
+            zoom = ZOOM
         scroll_x = self.car.hull.position[0]
         scroll_y = self.car.hull.position[1]
         angle = -self.car.hull.angle
