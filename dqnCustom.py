@@ -26,7 +26,9 @@ from pyglet import gl
 from gym import error, spaces, utils
 from gym.utils import seeding
 
-env = gym.make('CarRacing-v0')
+from car_racing import *
+
+env = CarRacing()
 env.reset()
 
 class Agent():
@@ -43,10 +45,15 @@ class Agent():
         loss_func = nn.BCELoss()
         self.optimizer.zero_grad()
 
-        for _ in range(20000):
+        for _ in range(20000): # le for itère sur un nombre de "env.step()" : c'est à dire 20.000 actions haut, bas, gauche ou droite
             env.render()
-            env.step(env.action_space.sample()) #random action
+            s, r, done, info = env.step(env.action_space.sample()) #random action
             #self.optimizer.step(self)
+            
+            if done: # vaut True quand la voiture est rentrée en collision avec un mur ou le bord du circuit
+                #TODO: s'occuper de mettre à jour les infos pour l'IA ici et lancer létape suivante
+                break
+            
         env.close()
 
 if __name__ == "__main__":

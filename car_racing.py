@@ -356,7 +356,7 @@ class CarRacing(gym.Env, EzPickle):
                 
                 obstacle.userData = obstacle    
                 obstacle.color = [0.1568, 0.598, 0.2862, 0]
-                obstacle.collided = False
+                #obstacle.collided = False
                 #obstacle.fixtures[0].sensor = True # je sais pas ce que ça représente
                 self.road_poly.append(
                         ([obs1_l, obs1_r, obs2_r, obs2_l], obstacle.color)
