@@ -64,7 +64,7 @@ BORDER = 12/SCALE
 BORDER_MIN_COUNT = 10   
 Amount_Left = 0
 
-OBSTACLE_PROB = 1/50
+OBSTACLE_PROB = 1/10
 
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
@@ -94,9 +94,9 @@ class FrictionDetector(contactListener):
             return
 
         # Change la couleur des tiles parcourues
-        tile.color[0] = ROAD_COLOR[0]
+        """tile.color[0] = ROAD_COLOR[0]
         tile.color[1] = ROAD_COLOR[1]
-        tile.color[2] = ROAD_COLOR[2]
+        tile.color[2] = ROAD_COLOR[2]"""
         if not obj or "tiles" not in obj.__dict__:
             return
         if begin:
