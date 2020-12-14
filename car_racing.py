@@ -310,7 +310,7 @@ class CarRacing(gym.Env, EzPickle):
             t = self.world.CreateStaticBody(fixtures=self.fd_tile)
             t.userData = t
             c = 0.01*(i%3)
-            t.color = [0, 0.128, 0.624, 0.019]
+            t.color = ROAD_COLOR
             t.road_visited = False
             t.road_friction = 1.0
             t.fixtures[0].sensor = True
