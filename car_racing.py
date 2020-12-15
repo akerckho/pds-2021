@@ -403,8 +403,6 @@ class CarRacing(gym.Env, EzPickle):
         done = False
         if action is not None:  # First step without action, called from reset()
             self.reward -= 0.1
-            # We actually don't want to count fuel spent, we want car to be faster.
-            # self.reward -=  10 * self.car.fuel_spent / ENGINE_POWER
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
@@ -412,7 +410,6 @@ class CarRacing(gym.Env, EzPickle):
             if self.tile_visited_count == len(self.track):
                 done = True
             x, y = self.car.hull.position
-
 
             # Vérification des collisions:
             for i in range(len(self.obstacles_positions)):
@@ -444,7 +441,7 @@ class CarRacing(gym.Env, EzPickle):
                 tiles = w.contacts
                 if (tiles.__len__() > 0):
                     LOCATION = "TILE"
-                elif (tiles.__len__() == 0):
+                elif (tiles.__len__() == 0):                           # vraie détection de sortie de route
                     LOCATION = "GRASS"
                     done = True
                     step_reward = -100
@@ -602,6 +599,9 @@ class CarRacing(gym.Env, EzPickle):
         self.tile_label.text = "%4i" % Amount_Left
         self.tile_label.draw()
 
+    def setAngleZero(self):
+        self.car.hull.angle = 0
+
 if __name__ == "__main__":
     from pyglet.window import key
     a = np.array([0.0, 0.0, 0.0])
@@ -628,8 +628,10 @@ if __name__ == "__main__":
         from gym.wrappers.monitor import Monitor
         env = Monitor(env, '/tmp/video-test', force=True)
     isopen = True
+    
     while isopen:
         env.reset()
+        #env.setAngleZero()
         total_reward = 0.0
         steps = 0
         restart = False

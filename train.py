@@ -1,4 +1,5 @@
 import copy 
+import os
 
 import torch
 from torch.autograd import Variable
@@ -7,8 +8,14 @@ from torch import optim, nn
 from model import CustomModel
 from data import CustomDataset, get_dataloader
 
+from carbontracker.tracker import CarbonTracker
+
+
 def train(model, criterion, train_loader, test_loader, max_epochs=50, 
           learning_rate=0.001):
+
+
+    tracker = CarbonTracker(epochs=max_epochs, verbose=2)
     
     dataloaders = {
         "train":train_loader, "val": test_loader
@@ -18,8 +25,12 @@ def train(model, criterion, train_loader, test_loader, max_epochs=50,
 
     best_acc = 0
     for epoch in range(max_epochs):
-        print('Epoch {}/{}'.format(epoch, max_epochs - 1))
-        print('-' * 10)
+
+        tracker.epoch_start()
+
+        #print('Epoch {}/{}'.format(epoch, max_epochs - 1))
+        #print('-' * 10)
+
         # Each epoch has a training and validation phase
         for phase in ['val', 'train']:
             if phase == 'train':
@@ -53,8 +64,11 @@ def train(model, criterion, train_loader, test_loader, max_epochs=50,
             epoch_loss = running_loss / len(dataloaders[phase])
             epoch_acc = running_corrects / len(dataloaders[phase])
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                phase, epoch_loss, epoch_acc))
+            #print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+            #    phase, epoch_loss, epoch_acc))
+
+            direct = os.path.join("models2")
+            os.makedirs(direct, exist_ok=True)
 
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
@@ -64,6 +78,11 @@ def train(model, criterion, train_loader, test_loader, max_epochs=50,
                 f = open(name, "w+")
                 f.close()
                 torch.save(best_model_wts, name)
+
+        tracker.epoch_end()
+
+    # tracker.stop() in case of early stop of training
+    tracker.stop() 
 
     print('Training complete')
     print('Best val Acc: {:4f}'.format(best_acc))
@@ -78,4 +97,4 @@ if __name__=='__main__':
     test_loader = get_dataloader(test_path, batch_size=30)
 
     loss = nn.CrossEntropyLoss()
-    train(model, loss, train_loader, test_loader, 50)
+    train(model, loss, train_loader, test_loader, 100)

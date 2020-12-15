@@ -56,9 +56,12 @@ if __name__=='__main__':
     isopen = True
     while isopen:
         env.reset()
+        env.seed(17122020)   # seed the circuit but not the obstacles 
         while True:
             s, r, done, info = env.step(a)
             action_id = action_to_id(a)
+            if done:
+                break
             if samples_saved[action_id] < samples_each_classes:
                 samples_saved[action_id] += 1
                 samples_each_classes

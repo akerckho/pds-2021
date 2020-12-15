@@ -10,9 +10,18 @@ dqnCustom.py:
 	- torch
 	- torchvision
 
+record_dataset.py
+	- imageio
 
-python3 record_dataset.py train_set 
-python3 record_dataset.py test_set
+train.py
+	- carbontracker
+	- sudo chmod a+r /sys/class/powercap/intel-rapl:0/energy_uj
+
+
+
+# Entrainement d'une IA
+python3 record_dataset.py train_set # jouer un petit temps pour donner des informations en entrée du modèle
+python3 record_dataset.py test_set  
 
 python3 train.py
 
