@@ -9,6 +9,7 @@ from data import LEFT, RIGHT, GO, ACTIONS
 from car_racing import *
 
 samples_each_classes = 3000
+SEED = np.random.randint(1,100000)
 
 def action_to_id(a):
     if all(a == [-1, 0, 0]): return LEFT
@@ -23,6 +24,7 @@ if __name__=='__main__':
     
     env = CarRacing()
     env.reset()
+    env.seed(SEED)   # seed the circuit 
 
     folder = sys.argv[1]
     images = os.path.join(folder, "images")
@@ -46,6 +48,7 @@ if __name__=='__main__':
     env.viewer.window.on_key_press = key_press
     env.viewer.window.on_key_release = key_release
     env.reset()
+    env.seed(SEED)   # seed the circuit 
     for i in range(100):
         env.step([0, 0, 0])
 
@@ -56,7 +59,7 @@ if __name__=='__main__':
     isopen = True
     while isopen:
         env.reset()
-        env.seed(17122020)   # seed the circuit but not the obstacles 
+        env.seed(SEED)   # seed the circuit
         while True:
             s, r, done, info = env.step(a)
             action_id = action_to_id(a)

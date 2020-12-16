@@ -335,11 +335,10 @@ class CarRacing(gym.Env, EzPickle):
                     )
                 )
             
-            rd = np.random.rand()
-            if (rd < OBSTACLE_PROB) and (last_obstacle <= 0): # i > 15 pour que la course soit toujours faisable
+            if (self.np_random.uniform(0, 1) < OBSTACLE_PROB) and (last_obstacle <= 0): # i > 15 pour que la course soit toujours faisable
                 last_obstacle = 8 
 
-                deriv_left = np.random.randint(TRACK_WIDTH)
+                deriv_left = self.np_random.uniform(TRACK_WIDTH)
                 deriv_right = TRACK_WIDTH - deriv_left
                 
 
