@@ -15,7 +15,7 @@ from car_racing import *
 id_to_steer = {
     LEFT: -1,
     RIGHT: 1,
-    GO: 0,
+    GO: 0.3,
 }
 
 if __name__=='__main__':
@@ -30,18 +30,20 @@ if __name__=='__main__':
     env = CarRacing()
     env.reset()
 
-    a = np.array([0.0, 0.0, 0.0])
+    a = np.array([0.0, 0.0, 0.1])
 
     def key_press(k, mod):
         global restart
         if k==key.LEFT:  a[0] = -1.0
         if k==key.RIGHT: a[0] = +1.0
-        if k==key.UP:    a[1] = +1.0
+        if k==key.UP:    a[1] = 0.3
         if k==key.DOWN:  a[2] = +0.8   # set 1.0 for wheels to block to zero rotation
     def key_release(k, mod):
         if k==key.LEFT  and a[0]==-1.0: a[0] = 0
         if k==key.RIGHT and a[0]==+1.0: a[0] = 0
-        if k==key.UP:    a[1] = 0
+        if k==key.UP:    
+            a[1] = 0
+            a[2] = 0.1
         if k==key.DOWN:  a[2] = 0
 
     env.viewer.window.on_key_press = key_press
@@ -64,14 +66,19 @@ if __name__=='__main__':
             # because our transformation takes an image as input
             s  = PIL.Image.fromarray(s)  
             input = transform_driving_image(s)
-            input = Variable(input[None, :], volatile=True)
+            with torch.no_grad():
+                input = Variable(input[None, :])
             output = Softmax()(model(input))
             data, index = output.max(1)
             index = index.data[0]
-            print(output.data[0, index])
-            a[0] = id_to_steer[index.item()] * output.data[0, index] * 0.3  # lateral acceleration
+            if index in (0, 1):
+                a[0] = id_to_steer[index.item()] * output.data[0, index] * 0.3  # lateral acceleration
+            else:
+                a[0] = 0 
+                a[1] = 0.3 * output.data[0, index]
+                a[2] = 0.1
+
             isopen = env.render()
-            print(env.tile_label)
             if done or not isopen:
             	break
     env.close()

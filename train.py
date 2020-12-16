@@ -64,8 +64,8 @@ def train(model, criterion, train_loader, test_loader, max_epochs=50,
             epoch_loss = running_loss / len(dataloaders[phase])
             epoch_acc = running_corrects / len(dataloaders[phase])
 
-            #print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-            #    phase, epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+                phase, epoch_loss, epoch_acc))
 
             direct = os.path.join("models2")
             os.makedirs(direct, exist_ok=True)
@@ -97,4 +97,4 @@ if __name__=='__main__':
     test_loader = get_dataloader(test_path, batch_size=30)
 
     loss = nn.CrossEntropyLoss()
-    train(model, loss, train_loader, test_loader, 100)
+    train(model, loss, train_loader, test_loader, 40)
