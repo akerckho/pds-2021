@@ -44,10 +44,6 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 
 
-from sympy import geometry
-from sympy.geometry import Point2D, Segment2D, Ray2D, intersection
-
-
 STATE_W = 96   # less than Atari 160x192
 STATE_H = 96
 VIDEO_W = 600
@@ -155,9 +151,6 @@ class CarRacing(gym.Env, EzPickle):
             dtype=np.uint8
         )
 
-        self.sensorBorder = []
-        self.stepNr = 0
-
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -168,8 +161,6 @@ class CarRacing(gym.Env, EzPickle):
         for t in self.road:
             self.world.DestroyBody(t)
         self.road = []
-        self.sensorBorder = []
-        self.stepNr = 0
         self.car.destroy()
 
     def _create_track(self):
@@ -316,19 +307,6 @@ class CarRacing(gym.Env, EzPickle):
             road2_r = (x2 + TRACK_WIDTH*math.cos(beta2), y2 + TRACK_WIDTH*math.sin(beta2))
             vertices = [road1_l, road1_r, road2_r, road2_l]
             
-            # Côté gauche ## FIXME: Je pense que les cordonnées ne sont pas correctement prises en considération
-            self.addSensorBorder( x1 - TRACK_WIDTH*math.cos(beta1),
-                                y1 - TRACK_WIDTH*math.sin(beta1),
-                                x2 - TRACK_WIDTH*math.cos(beta2), 
-                                y2 - TRACK_WIDTH*math.sin(beta2) )            
-
-            # Côté droit                
-            self.addSensorBorder( x1 + TRACK_WIDTH*math.cos(beta1), 
-                                y1 + TRACK_WIDTH*math.sin(beta1),
-                                x2 + TRACK_WIDTH*math.cos(beta2), 
-                                y2 + TRACK_WIDTH*math.sin(beta2) )
-            
-
             self.fd_tile.shape.vertices = vertices
             t = self.world.CreateStaticBody(fixtures=self.fd_tile)
             t.userData = t
@@ -364,35 +342,11 @@ class CarRacing(gym.Env, EzPickle):
                 deriv_left = self.np_random.uniform(TRACK_WIDTH)
                 deriv_right = TRACK_WIDTH - deriv_left
                 
-
                 obs1_l = (x1 - (TRACK_WIDTH-deriv_left)*math.cos(beta1), y1 - (TRACK_WIDTH-deriv_left)*math.sin(beta1))
                 obs1_r = (x1 + (TRACK_WIDTH-deriv_right)*math.cos(beta1), y1 + (TRACK_WIDTH-deriv_right)*math.sin(beta1))
                 obs2_l = (x2 - (TRACK_WIDTH-deriv_left)*math.cos(beta2), y2 - (TRACK_WIDTH-deriv_left)*math.sin(beta2))
                 obs2_r = (x2 + (TRACK_WIDTH-deriv_right)*math.cos(beta2), y2 + (TRACK_WIDTH-deriv_right)*math.sin(beta2))
                 
-                """
-                # Côté gauche
-                self.addSensorBorder( x1 - (TRACK_WIDTH-deriv_left)*math.cos(beta1),
-                                    y1 - (TRACK_WIDTH-deriv_left)*math.sin(beta1),
-                                    x2 - (TRACK_WIDTH-deriv_left)*math.cos(beta2),
-                                    y2 - (TRACK_WIDTH-deriv_left)*math.sin(beta2) )
-
-                # Côté droit
-                self.addSensorBorder( x1 + (TRACK_WIDTH-deriv_right)*math.cos(beta1), 
-                                    y1 + (TRACK_WIDTH-deriv_right)*math.sin(beta1),
-                                    x2 + (TRACK_WIDTH-deriv_right)*math.cos(beta2), 
-                                    y2 + (TRACK_WIDTH-deriv_right)*math.sin(beta2) )
-                
-                # Côté bas
-                self.addSensorBorder( x2 - (TRACK_WIDTH-deriv_left)*math.cos(beta2), 
-                                    y2 - (TRACK_WIDTH-deriv_left)*math.sin(beta2),
-                                    x2 + (TRACK_WIDTH-deriv_right)*math.cos(beta2),
-                                    y2 + (TRACK_WIDTH-deriv_right)*math.sin(beta2) )
-                """
-
-                
-
-
                 self.obstacles_positions.append((obs1_l, obs1_r, obs2_r, obs2_l))
                 vertices = [obs1_l, obs1_r, obs2_r, obs2_l]
                 obstacle = fixtureDef(
@@ -401,8 +355,7 @@ class CarRacing(gym.Env, EzPickle):
                 
                 obstacle.userData = obstacle    
                 obstacle.color = [0.1568, 0.598, 0.2862, 0]
-                #obstacle.collided = False
-                #obstacle.fixtures[0].sensor = True # je sais pas ce que ça représente
+                
                 self.road_poly.append(
                         ([obs1_l, obs1_r, obs2_r, obs2_l], obstacle.color)
                     )
@@ -433,10 +386,6 @@ class CarRacing(gym.Env, EzPickle):
         return self.step(None)[0]
 
     def step(self, action):
-        # Tentative straight forward de réduire le lag
-        
-        if self.stepNr == 15:
-            self.stepNr = 0
 
         if action is not None:
             self.car.steer(-action[0])
@@ -462,85 +411,14 @@ class CarRacing(gym.Env, EzPickle):
         
             x, y = self.car.hull.position
             car_angle = self.car.hull.angle
-            # SENSORS
-            """
-            if self.stepNr == 0: # on ne fait pas ça tous les step sinon ça lag trop
-                car_pos = Point2D(x, y, evaluate=False)
-
-                # Les sensors sont des demi-droites qui vont intersecter des segments de droites
-                forward_sensor       = Ray2D(car_pos, angle=car_angle,               evaluate=False)    
-                forward_left_sensor  = Ray2D(car_pos, angle=car_angle-(3.14159/4),   evaluate=False)    
-                forward_right_sensor = Ray2D(car_pos, angle=car_angle+(3.14159/4),   evaluate=False)  
-
-                f_intersect_dist = []       # forward
-                fl_intersect_dist = []      # forward left  (-45°)
-                fr_intersect_dist = []      # forward right (+45°)
-
-                # condition de réduction du nombre de border à vérifier
-                # on ne va considérer que celles se trouvant dans un carré autour de la voiture    
-                BOX_SIZE = 12
-                for i in range(len(self.sensorBorder)):
-                    if ((x-BOX_SIZE <= self.sensorBorder[i].p1.x <= x+BOX_SIZE) and
-                        (y-BOX_SIZE <= self.sensorBorder[i].p1.y <= y+BOX_SIZE)):
-                        
-
-                        # CALCULS DES INTERSECTIONS AVEC TOUS LES SENSORS
-                        f_intersect = intersection(forward_sensor, self.sensorBorder[i])
-                        if f_intersect != []:
-                            f_intersect_dist.append(f_intersect[0].distance(car_pos))
-
-                        fl_intersect = intersection(forward_left_sensor, self.sensorBorder[i])
-                        if fl_intersect != []:
-                            fl_intersect_dist.append(fl_intersect[0].distance(car_pos))
-                        
-                        fr_intersect = intersection(forward_right_sensor, self.sensorBorder[i])
-                        if fr_intersect != []:
-                            fr_intersect_dist.append(fr_intersect[0].distance(car_pos))
-                
-                # GARDES FOUS
-                try:
-                    forward_dist = min(f_intersect_dist)
-                except ValueError: 
-                    forward_dist = BOX_SIZE 
-
-                try:
-                    forward_left_dist = min(fl_intersect_dist)
-                except ValueError: 
-                    forward_left_dist = BOX_SIZE
-
-                try:
-                    forward_right_dist = min(fr_intersect_dist)
-                except ValueError: 
-                    forward_right_dist = BOX_SIZE 
-
-
-                print("Distance mur devant : {}".format(forward_dist))
-                print("Distance mur avant-gauche : {}".format(forward_left_dist))
-                print("Distance mur avant-droit : {}".format(forward_right_dist))
-                print()
-            """
-            # Vérification des collisions:
+            
+            # Vérification des collisions avec les obstacles:
             for i in range(len(self.obstacles_positions)):
                 obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[i]
-                x1, y1 = obs1_l
-                x2, y2 = obs1_r
-                x3, y3 = obs2_l
-                x4, y4 = obs2_r
-
-
-                # Les lignes de la condition ci-dessous suit le format
-                # - bordure inférieure
-                # - bordure gauche
-                # - bordure droite
-                # - bordure supérieure
-                if (    (((x2-x1)*(y-y1)) - ((x-x1)*(y2-y1))) <= 0
-                    and (((x1-x3)*(y-y3)) - ((x-x3)*(y1-y3))) <= 0
-                    and (((x3-x4)*(y-y4)) - ((x-x4)*(y3-y4))) <= 0
-                    and (((x4-x2)*(y-y2)) - ((x-x2)*(y4-y2))) <= 0    ):
-
+                if self.isInsideObstacle((x,y), obs1_l, obs1_r, obs2_l, obs2_r):
                         print("HAHA t'as touché le mur numéro{}".format(i))
                         done = True
-                        step_reward -= 100                             # valeur au pif ici, voir ce qu'on voudra 
+                        step_reward -= 100      # valeur au pif ici, voir ce qu'on voudra 
 
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
                 done = True
@@ -549,18 +427,45 @@ class CarRacing(gym.Env, EzPickle):
                 tiles = w.contacts
                 if (tiles.__len__() > 0):
                     LOCATION = "TILE"
-                elif (tiles.__len__() == 0):                           # vraie détection de sortie de route
+                elif (tiles.__len__() == 0):     # vraie détection de sortie de route
                     LOCATION = "GRASS"
                     done = True
                     step_reward = -100
+
+            # SENSORS
             direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
             for i in range(len(self.car.sensors)): #check if sensors collide with grass
                 tiles = self.car.sensors[i].contacts
-                if (tiles.__len__() == 0):                           # vraie détection de sortie de route
+
+                # Sensor de sortie de circuit
+                if (tiles.__len__() == 0):                           
                     print("grass on {}".format(direction[i]))
 
-        self.stepNr += 1
+                # Sensor d'obstacle
+                sensor_x = self.car.sensors[i].position.x
+                sensor_y = self.car.sensors[i].position.y
+                for j in range(len(self.obstacles_positions)):
+                    obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[j]
+                    if self.isInsideObstacle((sensor_x,sensor_y), obs1_l, obs1_r, obs2_l, obs2_r):
+                        print("obstacle on {}".format(direction[i]))             
+
         return step_reward, done, {}
+
+    def isInsideObstacle(self, ref_pos, pos1, pos2, pos3, pos4):
+        """
+        Vérifie si le point ref_pos se trouve à l'intérieur du quadrilatère composé
+        à partir de pos1, pos2, pos3 et pos4
+        """
+        x, y = ref_pos
+        x1, y1 = pos1
+        x2, y2 = pos2
+        x3, y3 = pos3
+        x4, y4 = pos4
+
+        return ((((x2-x1)*(y-y1)) - ((x-x1)*(y2-y1)) <= 0)
+            and ((((x1-x3)*(y-y3)) - ((x-x3)*(y1-y3))) <= 0)
+            and ((((x3-x4)*(y-y4)) - ((x-x4)*(y3-y4))) <= 0)
+            and ((((x4-x2)*(y-y2)) - ((x-x2)*(y4-y2))) <= 0))
 
     def render(self, mode='human'):
         assert mode in ['human', 'state_pixels', 'rgb_array']
