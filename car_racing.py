@@ -34,7 +34,7 @@ from Box2D.b2 import contactListener
 
 import gym
 from gym import spaces
-from gym.envs.box2d.car_dynamics import Car
+from car_dynamics import Car
 from gym.utils import seeding, EzPickle
 
 import pyglet
@@ -180,16 +180,16 @@ class CarRacing(gym.Env, EzPickle):
         checkpoints = []
         self.obstacles_positions = []
         for c in range(CHECKPOINTS):
-            noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
-            alpha = 2 * math.pi * c / CHECKPOINTS + noise
+            noise = self.np_random.uniform(0, 2 * 3.14159 * 1 / CHECKPOINTS)
+            alpha = 2 * 3.14159 * c / CHECKPOINTS + noise
             rad = self.np_random.uniform(TRACK_RAD / 3, TRACK_RAD)
 
             if c == 0:
                 alpha = 0
                 rad = 1.5 * TRACK_RAD
             if c == CHECKPOINTS - 1:
-                alpha = 2 * math.pi * c / CHECKPOINTS
-                self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
+                alpha = 2 * 3.14159 * c / CHECKPOINTS
+                self.start_alpha = 2 * 3.14159 * (-0.5) / CHECKPOINTS
                 rad = 1.5 * TRACK_RAD
 
             checkpoints.append(
@@ -211,7 +211,7 @@ class CarRacing(gym.Env, EzPickle):
                 visited_other_side = False
             if alpha < 0:
                 visited_other_side = True
-                alpha += 2 * math.pi
+                alpha += 2 * 3.14159
 
             while True:  # Find destination from checkpoints
                 failed = True
@@ -228,7 +228,7 @@ class CarRacing(gym.Env, EzPickle):
                 if not failed:
                     break
 
-                alpha -= 2*math.pi
+                alpha -= 2*3.14159
                 continue
 
             r1x = math.cos(beta)
@@ -239,10 +239,10 @@ class CarRacing(gym.Env, EzPickle):
             dest_dy = dest_y - y
             # destination vector projected on rad:
             proj = r1x * dest_dx + r1y * dest_dy
-            while beta - alpha > 1.5 * math.pi:
-                beta -= 2 * math.pi
-            while beta - alpha < -1.5 * math.pi:
-                beta += 2 * math.pi
+            while beta - alpha > 1.5 * 3.14159:
+                beta -= 2 * 3.14159
+            while beta - alpha < -1.5 * 3.14159:
+                beta += 2 * 3.14159
             prev_beta = beta
             proj *= SCALE
             if proj > 0.3:
@@ -434,7 +434,7 @@ class CarRacing(gym.Env, EzPickle):
 
     def step(self, action):
         # Tentative straight forward de réduire le lag
-        self.stepNr += 1
+        
         if self.stepNr == 15:
             self.stepNr = 0
 
@@ -447,7 +447,7 @@ class CarRacing(gym.Env, EzPickle):
         self.world.Step(1.0/FPS, 6*30, 2*30)
         self.t += 1.0/FPS
 
-        self.state = self.render("state_pixels")
+        #self.render("state_pixels")
 
         step_reward = 0
         done = False
@@ -462,15 +462,15 @@ class CarRacing(gym.Env, EzPickle):
         
             x, y = self.car.hull.position
             car_angle = self.car.hull.angle
-            
             # SENSORS
+            """
             if self.stepNr == 0: # on ne fait pas ça tous les step sinon ça lag trop
                 car_pos = Point2D(x, y, evaluate=False)
 
                 # Les sensors sont des demi-droites qui vont intersecter des segments de droites
                 forward_sensor       = Ray2D(car_pos, angle=car_angle,               evaluate=False)    
-                forward_left_sensor  = Ray2D(car_pos, angle=car_angle-(math.pi/4),   evaluate=False)    
-                forward_right_sensor = Ray2D(car_pos, angle=car_angle+(math.pi/4),   evaluate=False)  
+                forward_left_sensor  = Ray2D(car_pos, angle=car_angle-(3.14159/4),   evaluate=False)    
+                forward_right_sensor = Ray2D(car_pos, angle=car_angle+(3.14159/4),   evaluate=False)  
 
                 f_intersect_dist = []       # forward
                 fl_intersect_dist = []      # forward left  (-45°)
@@ -518,7 +518,7 @@ class CarRacing(gym.Env, EzPickle):
                 print("Distance mur avant-gauche : {}".format(forward_left_dist))
                 print("Distance mur avant-droit : {}".format(forward_right_dist))
                 print()
-    
+            """
             # Vérification des collisions:
             for i in range(len(self.obstacles_positions)):
                 obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[i]
@@ -553,7 +553,14 @@ class CarRacing(gym.Env, EzPickle):
                     LOCATION = "GRASS"
                     done = True
                     step_reward = -100
-        return self.state, step_reward, done, {}
+            direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
+            for i in range(len(self.car.sensors)): #check if sensors collide with grass
+                tiles = self.car.sensors[i].contacts
+                if (tiles.__len__() == 0):                           # vraie détection de sortie de route
+                    print("grass on {}".format(direction[i]))
+
+        self.stepNr += 1
+        return step_reward, done, {}
 
     def render(self, mode='human'):
         assert mode in ['human', 'state_pixels', 'rgb_array']
@@ -624,24 +631,19 @@ class CarRacing(gym.Env, EzPickle):
             VP_H = int(pixel_scale * WINDOW_H)
 
         gl.glViewport(0, 0, VP_W, VP_H)
+
         t.enable()
         self.render_road()
         for geom in self.viewer.onetime_geoms:
             geom.render()
         self.viewer.onetime_geoms = []
         t.disable()
+
         self.render_indicators(WINDOW_W, WINDOW_H)
 
         if mode == 'human':
             win.flip()
             return self.viewer.isopen
-
-        image_data = pyglet.image.get_buffer_manager().get_color_buffer().get_image_data()
-        arr = np.fromstring(image_data.get_data(), dtype=np.uint8, sep='')
-        arr = arr.reshape(VP_H, VP_W, 4)
-        arr = arr[::-1, :, 0:3]
-
-        return arr
 
     def close(self):
         if self.viewer is not None:
@@ -757,7 +759,7 @@ if __name__ == "__main__":
         steps = 0
         restart = False
         while True:
-            s, r, done, info = env.step(a)
+            r, done, info = env.step(a)
             total_reward += r
             if steps % 200 == 0 or done:
                 print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
@@ -767,3 +769,5 @@ if __name__ == "__main__":
             if done or restart or isopen == False:
                 break
     env.close()
+
+
