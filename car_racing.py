@@ -43,6 +43,11 @@ from pyglet import gl
 from gym import error, spaces, utils
 from gym.utils import seeding
 
+
+from sympy import geometry
+from sympy.geometry import Point2D, Segment2D, Ray2D, intersection
+
+
 STATE_W = 96   # less than Atari 160x192
 STATE_H = 96
 VIDEO_W = 600
@@ -150,6 +155,9 @@ class CarRacing(gym.Env, EzPickle):
             dtype=np.uint8
         )
 
+        self.sensorBorder = []
+        self.stepNr = 0
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -160,6 +168,8 @@ class CarRacing(gym.Env, EzPickle):
         for t in self.road:
             self.world.DestroyBody(t)
         self.road = []
+        self.sensorBorder = []
+        self.stepNr = 0
         self.car.destroy()
 
     def _create_track(self):
@@ -305,6 +315,19 @@ class CarRacing(gym.Env, EzPickle):
             road2_l = (x2 - TRACK_WIDTH*math.cos(beta2), y2 - TRACK_WIDTH*math.sin(beta2))
             road2_r = (x2 + TRACK_WIDTH*math.cos(beta2), y2 + TRACK_WIDTH*math.sin(beta2))
             vertices = [road1_l, road1_r, road2_r, road2_l]
+            
+            # Côté gauche ## FIXME: Je pense que les cordonnées ne sont pas correctement prises en considération
+            self.addSensorBorder( x1 - TRACK_WIDTH*math.cos(beta1),
+                                y1 - TRACK_WIDTH*math.sin(beta1),
+                                x2 - TRACK_WIDTH*math.cos(beta2), 
+                                y2 - TRACK_WIDTH*math.sin(beta2) )            
+
+            # Côté droit                
+            self.addSensorBorder( x1 + TRACK_WIDTH*math.cos(beta1), 
+                                y1 + TRACK_WIDTH*math.sin(beta1),
+                                x2 + TRACK_WIDTH*math.cos(beta2), 
+                                y2 + TRACK_WIDTH*math.sin(beta2) )
+            
 
             self.fd_tile.shape.vertices = vertices
             t = self.world.CreateStaticBody(fixtures=self.fd_tile)
@@ -347,6 +370,29 @@ class CarRacing(gym.Env, EzPickle):
                 obs2_l = (x2 - (TRACK_WIDTH-deriv_left)*math.cos(beta2), y2 - (TRACK_WIDTH-deriv_left)*math.sin(beta2))
                 obs2_r = (x2 + (TRACK_WIDTH-deriv_right)*math.cos(beta2), y2 + (TRACK_WIDTH-deriv_right)*math.sin(beta2))
                 
+                """
+                # Côté gauche
+                self.addSensorBorder( x1 - (TRACK_WIDTH-deriv_left)*math.cos(beta1),
+                                    y1 - (TRACK_WIDTH-deriv_left)*math.sin(beta1),
+                                    x2 - (TRACK_WIDTH-deriv_left)*math.cos(beta2),
+                                    y2 - (TRACK_WIDTH-deriv_left)*math.sin(beta2) )
+
+                # Côté droit
+                self.addSensorBorder( x1 + (TRACK_WIDTH-deriv_right)*math.cos(beta1), 
+                                    y1 + (TRACK_WIDTH-deriv_right)*math.sin(beta1),
+                                    x2 + (TRACK_WIDTH-deriv_right)*math.cos(beta2), 
+                                    y2 + (TRACK_WIDTH-deriv_right)*math.sin(beta2) )
+                
+                # Côté bas
+                self.addSensorBorder( x2 - (TRACK_WIDTH-deriv_left)*math.cos(beta2), 
+                                    y2 - (TRACK_WIDTH-deriv_left)*math.sin(beta2),
+                                    x2 + (TRACK_WIDTH-deriv_right)*math.cos(beta2),
+                                    y2 + (TRACK_WIDTH-deriv_right)*math.sin(beta2) )
+                """
+
+                
+
+
                 self.obstacles_positions.append((obs1_l, obs1_r, obs2_r, obs2_l))
                 vertices = [obs1_l, obs1_r, obs2_r, obs2_l]
                 obstacle = fixtureDef(
@@ -361,7 +407,7 @@ class CarRacing(gym.Env, EzPickle):
                         ([obs1_l, obs1_r, obs2_r, obs2_l], obstacle.color)
                     )
             last_obstacle -= 1
-            
+
         self.track = track
         return True
 
@@ -387,6 +433,11 @@ class CarRacing(gym.Env, EzPickle):
         return self.step(None)[0]
 
     def step(self, action):
+        # Tentative straight forward de réduire le lag
+        self.stepNr += 1
+        if self.stepNr == 15:
+            self.stepNr = 0
+
         if action is not None:
             self.car.steer(-action[0])
             self.car.gas(action[1])
@@ -408,8 +459,66 @@ class CarRacing(gym.Env, EzPickle):
 
             if self.tile_visited_count == len(self.track):
                 done = True
+        
             x, y = self.car.hull.position
+            car_angle = self.car.hull.angle
+            
+            # SENSORS
+            if self.stepNr == 0: # on ne fait pas ça tous les step sinon ça lag trop
+                car_pos = Point2D(x, y, evaluate=False)
 
+                # Les sensors sont des demi-droites qui vont intersecter des segments de droites
+                forward_sensor       = Ray2D(car_pos, angle=car_angle,               evaluate=False)    
+                forward_left_sensor  = Ray2D(car_pos, angle=car_angle-(math.pi/4),   evaluate=False)    
+                forward_right_sensor = Ray2D(car_pos, angle=car_angle+(math.pi/4),   evaluate=False)  
+
+                f_intersect_dist = []       # forward
+                fl_intersect_dist = []      # forward left  (-45°)
+                fr_intersect_dist = []      # forward right (+45°)
+
+                # condition de réduction du nombre de border à vérifier
+                # on ne va considérer que celles se trouvant dans un carré autour de la voiture    
+                BOX_SIZE = 12
+                for i in range(len(self.sensorBorder)):
+                    if ((x-BOX_SIZE <= self.sensorBorder[i].p1.x <= x+BOX_SIZE) and
+                        (y-BOX_SIZE <= self.sensorBorder[i].p1.y <= y+BOX_SIZE)):
+                        
+
+                        # CALCULS DES INTERSECTIONS AVEC TOUS LES SENSORS
+                        f_intersect = intersection(forward_sensor, self.sensorBorder[i])
+                        if f_intersect != []:
+                            f_intersect_dist.append(f_intersect[0].distance(car_pos))
+
+                        fl_intersect = intersection(forward_left_sensor, self.sensorBorder[i])
+                        if fl_intersect != []:
+                            fl_intersect_dist.append(fl_intersect[0].distance(car_pos))
+                        
+                        fr_intersect = intersection(forward_right_sensor, self.sensorBorder[i])
+                        if fr_intersect != []:
+                            fr_intersect_dist.append(fr_intersect[0].distance(car_pos))
+                
+                # GARDES FOUS
+                try:
+                    forward_dist = min(f_intersect_dist)
+                except ValueError: 
+                    forward_dist = BOX_SIZE 
+
+                try:
+                    forward_left_dist = min(fl_intersect_dist)
+                except ValueError: 
+                    forward_left_dist = BOX_SIZE
+
+                try:
+                    forward_right_dist = min(fr_intersect_dist)
+                except ValueError: 
+                    forward_right_dist = BOX_SIZE 
+
+
+                print("Distance mur devant : {}".format(forward_dist))
+                print("Distance mur avant-gauche : {}".format(forward_left_dist))
+                print("Distance mur avant-droit : {}".format(forward_right_dist))
+                print()
+    
             # Vérification des collisions:
             for i in range(len(self.obstacles_positions)):
                 obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[i]
@@ -598,8 +707,19 @@ class CarRacing(gym.Env, EzPickle):
         self.tile_label.text = "%4i" % Amount_Left
         self.tile_label.draw()
 
+    def addSensorBorder(self, x1, y1, x2, y2):
+        """
+        Fonction qui ajoute les bords de la route comme segments de droite "Segment2D"
+        afin d'avoir des points de repère pour nos sensors.
+        """
+        pt1 = Point2D(x1, y1, evaluate=False)
+        pt2 = Point2D(x2, y2, evaluate=False)
+
+        self.sensorBorder.append(Segment2D(pt1,pt2, evaluate=False))
+
     def setAngleZero(self):
         self.car.hull.angle = 0
+    
 
 if __name__ == "__main__":
     from pyglet.window import key
@@ -618,6 +738,7 @@ if __name__ == "__main__":
         if k == key.RIGHT and a[0] == +1.0: a[0] = 0
         if k == key.UP:    a[1] = 0
         if k == key.DOWN:  a[2] = 0
+
     env = CarRacing()
     env.render()
     env.viewer.window.on_key_press = key_press
@@ -631,6 +752,7 @@ if __name__ == "__main__":
     while isopen:
         env.reset()
         #env.setAngleZero()
+
         total_reward = 0.0
         steps = 0
         restart = False
