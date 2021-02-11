@@ -440,14 +440,21 @@ class CarRacing(gym.Env, EzPickle):
                 # Sensor de sortie de circuit
                 if (tiles.__len__() == 0):                           
                     print("grass on {}".format(direction[i]))
-
-                # Sensor d'obstacle
-                sensor_x = self.car.sensors[i].position.x
-                sensor_y = self.car.sensors[i].position.y
-                for j in range(len(self.obstacles_positions)):
-                    obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[j]
-                    if self.isInsideObstacle((sensor_x,sensor_y), obs1_l, obs1_r, obs2_l, obs2_r):
-                        print("obstacle on {}".format(direction[i]))             
+                    self.car.sensors[i].color = (1,0,0)
+                else:
+                    in_obstacle = False
+                    # Sensor d'obstacle
+                    sensor_x = self.car.sensors[i].position.x
+                    sensor_y = self.car.sensors[i].position.y
+                    for j in range(len(self.obstacles_positions)):
+                        obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[j]
+                        if self.isInsideObstacle((sensor_x,sensor_y), obs1_l, obs1_r, obs2_l, obs2_r):
+                            print("obstacle on {}".format(direction[i]))
+                            in_obstacle = True
+                    if in_obstacle:
+                        self.car.sensors[i].color = (1,0,0)
+                    else:
+                        self.car.sensors[i].color = (0,0,1)          
 
         return step_reward, done, {}
 
