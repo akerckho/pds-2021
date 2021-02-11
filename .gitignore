@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+#test sets
+test_set/
+train_set/
+Bon_model/
+models2/
+
 # Distribution / packaging
 .Python
 build/
