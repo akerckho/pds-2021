@@ -402,10 +402,8 @@ class CarRacing(gym.Env, EzPickle):
         done = False
         if action is not None:  # First step without action, called from reset()
             vel = np.linalg.norm(self.car.hull.linearVelocity)
-            if vel:
-                self.reward += 0.1 * np.linalg.norm(self.car.hull.linearVelocity)
-            else:
-                self.reward -= 1
+            sigmoid = 1/1+np.exp(vel)
+            self.reward -= 1/sigmoid
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
@@ -437,13 +435,13 @@ class CarRacing(gym.Env, EzPickle):
                     step_reward = -100
 
             # SENSORS
-            direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
+            #direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
             for i in range(len(self.car.sensors)): #check if sensors collide with grass
                 tiles = self.car.sensors[i].contacts
 
                 # Sensor de sortie de circuit
                 if (tiles.__len__() == 0):                           
-                    print("grass on {}".format(direction[i]))
+                    #print("grass on {}".format(direction[i]))
                     self.car.sensors[i].color = (1,0,0)
                 else:
                     in_obstacle = False
@@ -453,16 +451,16 @@ class CarRacing(gym.Env, EzPickle):
                     for j in range(len(self.obstacles_positions)):
                         obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[j]
                         if self.isInsideObstacle((sensor_x,sensor_y), obs1_l, obs1_r, obs2_l, obs2_r):
-                            print("obstacle on {}".format(direction[i]))
+                            #print("obstacle on {}".format(direction[i]))
                             in_obstacle = True
                     if in_obstacle:
                         self.car.sensors[i].color = (1,0,0)
                     else:
                         self.car.sensors[i].color = (0,0,1)          
 
-        state = [np.linalg.norm(self.car.hull.linearVelocity),self.car.hull.position[0],self.car.hull.position[1],[self.car.sensors[i].contacts.__len__() == 0 for i in range(len(self.car.sensors))]]
-
-
+        state = [np.linalg.norm(self.car.hull.linearVelocity),self.car.hull.position[0],self.car.hull.position[1]]+[self.car.sensors[i].contacts.__len__() == 0 for i in range(len(self.car.sensors))]
+        #print((1 / (1 + np.exp(-np.linalg.norm(self.car.hull.linearVelocity))))*2-1)
+        print()
         """
         methods : 
             self.car.steer(-action[0]) +1 right -1 left
