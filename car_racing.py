@@ -401,7 +401,11 @@ class CarRacing(gym.Env, EzPickle):
         step_reward = 0
         done = False
         if action is not None:  # First step without action, called from reset()
-            self.reward -= 0.1
+            vel = np.linalg.norm(self.car.hull.linearVelocity)
+            if vel:
+                self.reward += 0.1 * np.linalg.norm(self.car.hull.linearVelocity)
+            else:
+                self.reward -= 1
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
@@ -456,7 +460,22 @@ class CarRacing(gym.Env, EzPickle):
                     else:
                         self.car.sensors[i].color = (0,0,1)          
 
-        return step_reward, done, {}
+        state = [np.linalg.norm(self.car.hull.linearVelocity),self.car.hull.position[0],self.car.hull.position[1],[self.car.sensors[i].contacts.__len__() == 0 for i in range(len(self.car.sensors))]]
+
+
+        """
+        methods : 
+            self.car.steer(-action[0]) +1 right -1 left
+            self.car.gas(action[1]) 0 to 0.8
+            self.car.brake(action[2]) 0 or 1
+
+        reward:
+        + for time
+        - if slow speed
+        - if lost
+
+        """
+        return state,step_reward, done
 
     def isInsideObstacle(self, ref_pos, pos1, pos2, pos3, pos4):
         """
@@ -543,14 +562,12 @@ class CarRacing(gym.Env, EzPickle):
             VP_H = int(pixel_scale * WINDOW_H)
 
         gl.glViewport(0, 0, VP_W, VP_H)
-
         t.enable()
         self.render_road()
         for geom in self.viewer.onetime_geoms:
             geom.render()
         self.viewer.onetime_geoms = []
         t.disable()
-
         self.render_indicators(WINDOW_W, WINDOW_H)
 
         if mode == 'human':
@@ -639,45 +656,45 @@ if __name__ == "__main__":
     from pyglet.window import key
     a = np.array([0.0, 0.0, 0.0])
 
-    def key_press(k, mod):
-        global restart
-        if k == 0xff0d: restart = True
-        if k == key.LEFT:  a[0] = -1.0
-        if k == key.RIGHT: a[0] = +1.0
-        if k == key.UP:    a[1] = +1.0
-        if k == key.DOWN:  a[2] = +0.8   # set 1.0 for wheels to block to zero rotation
-
-    def key_release(k, mod):
-        if k == key.LEFT  and a[0] == -1.0: a[0] = 0
-        if k == key.RIGHT and a[0] == +1.0: a[0] = 0
-        if k == key.UP:    a[1] = 0
-        if k == key.DOWN:  a[2] = 0
-
-    env = CarRacing()
-    env.render()
-    env.viewer.window.on_key_press = key_press
-    env.viewer.window.on_key_release = key_release
-    record_video = False
-    if record_video:
-        from gym.wrappers.monitor import Monitor
-        env = Monitor(env, '/tmp/video-test', force=True)
-    isopen = True
+    render = True
     
+    if render:
+        def key_press(k, mod):
+            global restart
+            if k == 0xff0d: restart = True
+            if k == key.LEFT:  a[0] = -1.0
+            if k == key.RIGHT: a[0] = +1.0
+            if k == key.UP:    a[1] = +1.0
+            if k == key.DOWN:  a[2] = +0.8   # set 1.0 for wheels to block to zero rotation
+
+        def key_release(k, mod):
+            if k == key.LEFT  and a[0] == -1.0: a[0] = 0
+            if k == key.RIGHT and a[0] == +1.0: a[0] = 0
+            if k == key.UP:    a[1] = 0
+            if k == key.DOWN:  a[2] = 0
+    
+    env = CarRacing()
+    if render:
+        env.render()
+        env.viewer.window.on_key_press = key_press
+        env.viewer.window.on_key_release = key_release
+    isopen = True
     while isopen:
         env.reset()
-        #env.setAngleZero()
+        env.setAngleZero()
 
         total_reward = 0.0
         steps = 0
         restart = False
         while True:
-            r, done, info = env.step(a)
+            s,r, done = env.step(a)
             total_reward += r
             if steps % 200 == 0 or done:
                 print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
                 print("step {} total_reward {:+0.2f}".format(steps, total_reward))
             steps += 1
-            isopen = env.render()
+            if render:
+                isopen = env.render()
             if done or restart or isopen == False:
                 break
     env.close()
