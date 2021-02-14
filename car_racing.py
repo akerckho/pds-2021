@@ -135,6 +135,7 @@ class CarRacing(gym.Env, EzPickle):
         self.car = None
         self.reward = 0.0
         self.prev_reward = 0.0
+        self.times_succeeded=0
         self.verbose = verbose
         self.fd_tile = fixtureDef(
             shape=polygonShape(vertices=[(0, 0), (1, 0), (1, -1), (0, -1)])
@@ -391,7 +392,6 @@ class CarRacing(gym.Env, EzPickle):
             self.car.steer(-action[0])
             self.car.gas(action[1])
             self.car.brake(action[2])
-
         self.car.step(1.0/FPS)
         self.world.Step(1.0/FPS, 6*30, 2*30)
         self.t += 1.0/FPS
@@ -410,6 +410,7 @@ class CarRacing(gym.Env, EzPickle):
 
             if self.tile_visited_count == len(self.track):
                 done = True
+                self.times_succeeded+=1
         
             x, y = self.car.hull.position
             car_angle = self.car.hull.angle
@@ -685,9 +686,22 @@ if __name__ == "__main__":
     
 
 
-    from keras.layers import Dense,Input
+    import tensorflow as tf
+    from tensorflow import keras
+    from tensorflow.keras import layers
 
+    num_inputs = 13
+    num_actions = 9
+    num_hidden = 128
 
+    action_choices = [[0,1,0],[0,0,1],[0,0,0],[1,1,0],[1,0,1],[1,0,0],[-1,1,0],[-1,0,1],[-1,0,0]]
+
+    inputs = layers.Input(shape=(num_inputs,))
+    common = layers.Dense(num_hidden, activation="relu")(inputs)
+    action = layers.Dense(num_actions, activation="softmax")(common)
+    critic = layers.Dense(1)(common)
+
+    model = keras.Model(inputs=inputs, outputs=[action, critic])
 
 
 
@@ -697,6 +711,7 @@ if __name__ == "__main__":
         env.render()
         env.viewer.window.on_key_press = key_press
         env.viewer.window.on_key_release = key_release
+
     isopen = True
     while isopen:
         env.reset()
@@ -705,6 +720,8 @@ if __name__ == "__main__":
         total_reward = 0.0
         steps = 0
         restart = False
+
+        
         while True:
             s,r, done = env.step(a)
             total_reward += r
@@ -717,5 +734,3 @@ if __name__ == "__main__":
             if done or restart or isopen == False:
                 break
     env.close()
-
-
