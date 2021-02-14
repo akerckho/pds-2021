@@ -458,9 +458,10 @@ class CarRacing(gym.Env, EzPickle):
                     else:
                         self.car.sensors[i].color = (0,0,1)          
 
-        state = [np.linalg.norm(self.car.hull.linearVelocity),self.car.hull.position[0],self.car.hull.position[1]]+[self.car.sensors[i].contacts.__len__() == 0 for i in range(len(self.car.sensors))]
+        state = [np.linalg.norm(self.car.hull.linearVelocity),self.car.hull.position[0],self.car.hull.position[1]]
+        state += [1 if self.car.sensors[i].contacts.__len__() == 0 else 0 for i in range(len(self.car.sensors))]
         #print((1 / (1 + np.exp(-np.linalg.norm(self.car.hull.linearVelocity))))*2-1)
-        print()
+        #print()
         """
         methods : 
             self.car.steer(-action[0]) +1 right -1 left
