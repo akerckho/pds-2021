@@ -467,6 +467,17 @@ class CarRacing(gym.Env, EzPickle):
             self.car.gas(action[1]) 0 to 0.8
             self.car.brake(action[2]) 0 or 1
 
+        possible moves: ([gas,brake,steer_left,steer_right])
+        [1,0,0,0]
+        [0,0,0,0]
+        [0,1,0,0]
+        [1,0,0,1]
+        [0,0,0,1]
+        [0,1,0,1]
+        [1,0,1,0]
+        [0,0,1,0]
+        [0,1,1,0]
+
         reward:
         + for time
         - if slow speed
@@ -671,6 +682,15 @@ if __name__ == "__main__":
             if k == key.UP:    a[1] = 0
             if k == key.DOWN:  a[2] = 0
     
+
+
+    from keras.layers import Dense,Input
+
+
+
+
+
+
     env = CarRacing()
     if render:
         env.render()
