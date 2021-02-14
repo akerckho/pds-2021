@@ -54,7 +54,7 @@ WINDOW_H = 800
 SCALE = 6.0             # Track scale
 TRACK_RAD = 900/SCALE   # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000/SCALE  # Game over boundary
-FPS = 50                # Frames per second
+FPS = 50               # Frames per second
 ZOOM = 2                # Camera zoom
 ZOOM_FOLLOW = True     # Set to False for fixed view (don't use zoom) 
 
@@ -104,7 +104,7 @@ class FrictionDetector(contactListener):
             obj.tiles.add(tile)
             if not tile.road_visited:
                 tile.road_visited = True
-                self.env.reward += 1000.0/len(self.env.track)
+                self.env.reward += 2000.0/len(self.env.track)
                 self.env.tile_visited_count += 1
                 global Amount_Left
                 Amount_Left= (len(self.env.track)- self.env.tile_visited_count)
@@ -403,7 +403,7 @@ class CarRacing(gym.Env, EzPickle):
         if action is not None:  # First step without action, called from reset()
             vel = np.linalg.norm(self.car.hull.linearVelocity)
             sigmoid = 1/1+np.exp(vel)
-            self.reward -= 1/sigmoid
+            self.reward -= 0.5/sigmoid
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
@@ -459,7 +459,7 @@ class CarRacing(gym.Env, EzPickle):
                     else:
                         self.car.sensors[i].color = (0,0,1)          
 
-        state = [np.linalg.norm(self.car.hull.linearVelocity),self.car.hull.position[0],self.car.hull.position[1]]
+        state = [int(np.linalg.norm(self.car.hull.linearVelocity))]
         state += [1 if self.car.sensors[i].contacts.__len__() == 0 else 0 for i in range(len(self.car.sensors))]
         #print((1 / (1 + np.exp(-np.linalg.norm(self.car.hull.linearVelocity))))*2-1)
         #print()
@@ -468,17 +468,6 @@ class CarRacing(gym.Env, EzPickle):
             self.car.steer(-action[0]) +1 right -1 left
             self.car.gas(action[1]) 0 to 0.8
             self.car.brake(action[2]) 0 or 1
-
-        possible moves: ([gas,brake,steer_left,steer_right])
-        [1,0,0,0]
-        [0,0,0,0]
-        [0,1,0,0]
-        [1,0,0,1]
-        [0,0,0,1]
-        [0,1,0,1]
-        [1,0,1,0]
-        [0,0,1,0]
-        [0,1,1,0]
 
         reward:
         + for time

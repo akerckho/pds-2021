@@ -10,10 +10,10 @@ from tensorflow.keras import layers
 if __name__ == "__main__":
     
 
-    render = True
+    render = False
     
 
-    num_inputs = 13
+    num_inputs = 11
     num_actions = 9
     num_hidden = 128
 
@@ -24,8 +24,8 @@ if __name__ == "__main__":
     action = layers.Dense(num_actions, activation="softmax")(common)
     critic = layers.Dense(1)(common)
 
-    model = keras.Model(inputs=inputs, outputs=[action, critic])
-
+    #model = keras.Model(inputs=inputs, outputs=[action, critic]) 
+    model = keras.models.load_model("./model") #charger modèle existant
     gamma = 0.99  # Discount factor for past rewards
     eps = np.finfo(np.float32).eps.item()  # Smallest number such that 1.0 + eps != 1.0
     env = CarRacing()
@@ -40,14 +40,17 @@ if __name__ == "__main__":
     rewards_history = []
     running_reward = 0
     episode_count = 0
-
-    isopen = True
-    while isopen:
+    max_episode = 200
+    while episode_count < max_episode:
         state = env.reset()
         env.setAngleZero()
         episode_reward = 0
         steps = 0
+        
         restart = False
+        if episode_count == 100:  #commencer à render après x itérations
+            env.render()
+            render = True
 
         with tf.GradientTape() as tape:
             while True:
@@ -63,21 +66,20 @@ if __name__ == "__main__":
                 # Sample action from action probability distribution
                 action = np.random.choice(num_actions, p=np.squeeze(action_probs))
                 action_probs_history.append(tf.math.log(action_probs[0, action]))
-                print(action)
-                print(action_probs)
                 a = action_choices[action]
 
                 state,reward, done = env.step(a)
                 rewards_history.append(reward)
                 episode_reward += reward
-            
+                """
                 if steps % 200 == 0 or done:
                     print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
                     print("step {} total_reward {:+0.2f}".format(steps, episode_reward))
+                """
                 steps += 1
                 if render:
                     isopen = env.render()
-                if done or restart or isopen == False:
+                if done or restart or episode_reward < -2000: #arrête si le reward total est trop bas (voiture presque immobile)
                     break
 
             # Calculate expected value from rewards
@@ -125,13 +127,17 @@ if __name__ == "__main__":
             rewards_history.clear()
         # Log details
         episode_count += 1
+        print("episode {}".format(episode_count))
+        """
         if episode_count % 10 == 0:
             template = "running reward: {} at episode {}"
             print(template.format(env.times_succeeded, episode_count))
+        """
 
         if env.times_succeeded > 5:  # Condition to consider the task solved
             print("Solved at episode {}!".format(episode_count))
             break
+    model.save("./model")
     env.close()
 """
 
