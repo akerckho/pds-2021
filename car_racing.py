@@ -401,9 +401,10 @@ class CarRacing(gym.Env, EzPickle):
         step_reward = 0
         done = False
         if action is not None:  # First step without action, called from reset()
-            vel = np.linalg.norm(self.car.hull.linearVelocity)
-            sigmoid = 1/1+np.exp(vel)
-            self.reward -= 0.5/sigmoid
+            #vel = np.linalg.norm(self.car.hull.linearVelocity)
+            #sigmoid = 1/1+np.exp(vel)
+            #self.reward -= 1/sigmoid
+            self.reward -= 0.1
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
@@ -421,11 +422,11 @@ class CarRacing(gym.Env, EzPickle):
                 if self.isInsideObstacle((x,y), obs1_l, obs1_r, obs2_l, obs2_r):
                         print("HAHA t'as touché le mur numéro{}".format(i))
                         done = True
-                        step_reward -= 100      # valeur au pif ici, voir ce qu'on voudra 
+                        step_reward -= 200     # valeur au pif ici, voir ce qu'on voudra 
 
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
                 done = True
-                step_reward = -100
+                step_reward = -400
             for w in self.car.wheels:
                 tiles = w.contacts
                 if (tiles.__len__() > 0):
@@ -433,7 +434,7 @@ class CarRacing(gym.Env, EzPickle):
                 elif (tiles.__len__() == 0):     # vraie détection de sortie de route
                     LOCATION = "GRASS"
                     done = True
-                    step_reward = -100
+                    step_reward = -400
 
             # SENSORS
             #direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
