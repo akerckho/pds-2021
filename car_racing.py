@@ -55,8 +55,8 @@ SCALE = 6.0             # Track scale
 TRACK_RAD = 900/SCALE   # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000/SCALE  # Game over boundary
 FPS = 50               # Frames per second
-ZOOM = 2                # Camera zoom
-ZOOM_FOLLOW = True     # Set to False for fixed view (don't use zoom) 
+ZOOM = 4                # Camera zoom
+ZOOM_FOLLOW = False     # Set to False for fixed view (don't use zoom) 
 
 TRACK_DETAIL_STEP = 21/SCALE
 TRACK_TURN_RATE = 0.31
@@ -422,11 +422,9 @@ class CarRacing(gym.Env, EzPickle):
                 if self.isInsideObstacle((x,y), obs1_l, obs1_r, obs2_l, obs2_r):
                         print("HAHA t'as touché le mur numéro{}".format(i))
                         done = True
-                        step_reward -= 200     # valeur au pif ici, voir ce qu'on voudra 
+                        step_reward -= 400     # pénalité de mort
+                        step_reward += self.tile_visited_count * 2000.0/len(self.track) # Bonus de longueur de circuit parcourue
 
-            if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
-                done = True
-                step_reward = -400
             for w in self.car.wheels:
                 tiles = w.contacts
                 if (tiles.__len__() > 0):
@@ -434,7 +432,8 @@ class CarRacing(gym.Env, EzPickle):
                 elif (tiles.__len__() == 0):     # vraie détection de sortie de route
                     LOCATION = "GRASS"
                     done = True
-                    step_reward = -400
+                    step_reward -= 400
+                    step_reward += self.tile_visited_count * 2000.0/len(self.track) # Bonus de longueur de circuit parcourue
 
             # SENSORS
             #direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]

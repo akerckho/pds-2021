@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-
+SEED = np.random.randint(1,100000)
 
 if __name__ == "__main__":
     
@@ -29,7 +29,8 @@ if __name__ == "__main__":
     gamma = 0.99  # Discount factor for past rewards
     eps = np.finfo(np.float32).eps.item()  # Smallest number such that 1.0 + eps != 1.0
     env = CarRacing()
-
+    env.seed(SEED)   # seed the circuit 
+    
     if render:
         env.render()
 
@@ -43,6 +44,7 @@ if __name__ == "__main__":
     max_episode = 1000
     while episode_count < max_episode:
         state = env.reset()
+        env.seed(SEED)   # seed the circuit 
         env.setAngleZero()
         episode_reward = 0
         steps = 0
