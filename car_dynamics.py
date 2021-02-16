@@ -290,5 +290,8 @@ class Car:
         self.hull = None
         for w in self.wheels:
             self.world.DestroyBody(w)
+        for s in self.sensors:
+            self.world.DestroyBody(s)
         self.wheels = []
+        self.sensors = []
 

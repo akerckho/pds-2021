@@ -24,11 +24,12 @@ if __name__ == "__main__":
     action = layers.Dense(num_actions, activation="softmax")(common)
     critic = layers.Dense(1)(common)
 
-    #model = keras.Model(inputs=inputs, outputs=[action, critic]) 
-    model = keras.models.load_model("./model") #charger modèle existant
+    model = keras.Model(inputs=inputs, outputs=[action, critic]) 
+    #model = keras.models.load_model("./model") #charger modèle existant
     gamma = 0.99  # Discount factor for past rewards
     eps = np.finfo(np.float32).eps.item()  # Smallest number such that 1.0 + eps != 1.0
     env = CarRacing()
+    eps_greedy = 0.1
 
     if render:
         env.render()
@@ -48,7 +49,7 @@ if __name__ == "__main__":
         steps = 0
         
         restart = False
-        if episode_count == 00:  #commencer à render après x itérations
+        if episode_count == 100:  #commencer à render après x itérations
             env.render()
             render = True
 
@@ -64,7 +65,11 @@ if __name__ == "__main__":
                 critic_value_history.append(critic_value[0, 0])
 
                 # Sample action from action probability distribution
+                #if np.random.random() < eps_greedy: #discoverability
+                #    action = np.random.choice(num_actions)
+                #else:
                 action = np.random.choice(num_actions, p=np.squeeze(action_probs))
+                
                 action_probs_history.append(tf.math.log(action_probs[0, action]))
                 a = action_choices[action]
 
@@ -80,7 +85,7 @@ if __name__ == "__main__":
                 if render:
                     isopen = env.render()
                 if done or restart or episode_reward < -200: #arrête si le reward total est trop bas (voiture presque immobile)
-                    episode_reward-=300
+                    episode_reward-=100
                     rewards_history.append(reward)
                     break
 
