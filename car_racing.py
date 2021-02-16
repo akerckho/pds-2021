@@ -65,7 +65,7 @@ BORDER = 12/SCALE
 BORDER_MIN_COUNT = 10   
 Amount_Left = 0
 
-OBSTACLE_PROB = 1/20
+OBSTACLE_PROB = 0 #1/20
 
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
@@ -112,7 +112,7 @@ class FrictionDetector(contactListener):
             obj.tiles.add(tile)
             if not tile.road_visited and (u1 in self.env.car.wheels or u2 in self.env.car.wheels):
                 tile.road_visited = True
-                self.env.reward += 2000.0/len(self.env.track)
+                self.env.reward += 3000.0/len(self.env.track)
                 self.env.tile_visited_count += 1
                 global Amount_Left
                 Amount_Left= (len(self.env.track)- self.env.tile_visited_count)
@@ -409,8 +409,8 @@ class CarRacing(gym.Env, EzPickle):
         step_reward = 0
         done = False
         if action is not None:  # First step without action, called from reset()
-            #self.reward -= 0.1
-            self.reward -= 0.5/(round(np.linalg.norm(self.car.hull.linearVelocity)/100,1)+1)
+            self.reward -= 0.1
+            #self.reward -= 0.5/(round(np.linalg.norm(self.car.hull.linearVelocity)/100,1)+1)
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
@@ -428,7 +428,7 @@ class CarRacing(gym.Env, EzPickle):
                 if self.isInsideObstacle((x,y), obs1_l, obs1_r, obs2_l, obs2_r):
                         print("HAHA t'as touché le mur numéro{}".format(i))
                         done = True
-                        step_reward -= 700     # valeur au pif ici, voir ce qu'on voudra 
+                        #step_reward -= 400     # valeur au pif ici, voir ce qu'on voudra 
 
             for w in self.car.wheels:
                 tiles = w.contacts
@@ -437,7 +437,7 @@ class CarRacing(gym.Env, EzPickle):
                 elif (tiles.__len__() == 0):     # vraie détection de sortie de route
                     LOCATION = "GRASS"
                     done = True
-                    step_reward = -700
+                    #step_reward -= 400
 
             # SENSORS
             #direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
@@ -706,7 +706,7 @@ if __name__ == "__main__":
     isopen = True
     while isopen:
         env.reset()
-        env.setAngleZero()
+        #env.setAngleZero()
         print(env.tile_visited_count)
 
         total_reward = 0.0

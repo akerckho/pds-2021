@@ -1,3 +1,4 @@
+from typing import Counter
 from car_racing import *
 
 import numpy as np
@@ -13,7 +14,7 @@ if __name__ == "__main__":
     render = False
     
 
-    num_inputs = 16
+    num_inputs = 22
     num_actions = 9
     num_hidden = 128
 
@@ -21,8 +22,10 @@ if __name__ == "__main__":
 
     inputs = layers.Input(shape=(num_inputs,))
     common = layers.Dense(num_hidden, activation="relu")(inputs)
+    dropout = layers.Dropout(0.1, noise_shape=None, seed=None)
     action = layers.Dense(num_actions, activation="softmax")(common)
     critic = layers.Dense(1)(common)
+    
 
     model = keras.Model(inputs=inputs, outputs=[action, critic]) 
     #model = keras.models.load_model("./model") #charger modèle existant
@@ -43,38 +46,41 @@ if __name__ == "__main__":
     rewards_history = []
     running_reward = 0
     episode_count = 0
-    max_episode = 1000
+    max_episode = 2000
     while episode_count < max_episode:
         state = env.reset()
         env.seed(SEED)   # seed the circuit 
-        env.setAngleZero()
+        #env.setAngleZero()
         episode_reward = 0
         steps = 0
         
         restart = False
-        if episode_count == 100:  #commencer à render après x itérations
+        if episode_count == 700:  #commencer à render après x itérations
             env.render()
             render = True
+
+        frame_counter=0
 
         with tf.GradientTape() as tape:
             while True:
 
                 state = tf.convert_to_tensor(state)
                 state = tf.expand_dims(state, 0)
+                if frame_counter==0:
+                    # Predict action probabilities and estimated future rewards
+                    # from environment state
+                    action_probs, critic_value = model(state)
+                    critic_value_history.append(critic_value[0, 0])
 
-                # Predict action probabilities and estimated future rewards
-                # from environment state
-                action_probs, critic_value = model(state)
-                critic_value_history.append(critic_value[0, 0])
-
-                # Sample action from action probability distribution
-                #if np.random.random() < eps_greedy: #discoverability
-                #    action = np.random.choice(num_actions)
-                #else:
-                action = np.random.choice(num_actions, p=np.squeeze(action_probs))
-                
-                action_probs_history.append(tf.math.log(action_probs[0, action]))
-                a = action_choices[action]
+                    # Sample action from action probability distribution
+                    #if np.random.random() < eps_greedy: #discoverability
+                    #    action = np.random.choice(num_actions)
+                    #else:
+                    
+                    action = np.random.choice(num_actions, p=np.squeeze(action_probs))
+                    
+                    action_probs_history.append(tf.math.log(action_probs[0, action]))
+                    a = action_choices[action]
 
                 state,reward, done = env.step(a)
                 rewards_history.append(reward)
@@ -85,11 +91,14 @@ if __name__ == "__main__":
                     print("step {} total_reward {:+0.2f}".format(steps, episode_reward))
                 """
                 steps += 1
+                frame_counter+=1
+                if frame_counter==8:
+                    frame_counter=0
                 if render:
                     isopen = env.render()
-                if done or restart or episode_reward < -200: #arrête si le reward total est trop bas (voiture presque immobile)
-                    episode_reward-=100
-                    rewards_history.append(reward)
+                if episode_reward< -200 and not done:#arrête si le reward total est trop bas (voiture presque immobile)
+                    done = True
+                if done or restart : 
                     break
 
             # Calculate expected value from rewards
@@ -137,7 +146,7 @@ if __name__ == "__main__":
             rewards_history.clear()
         # Log details
         episode_count += 1
-        print("{} tiles visited on run".format(env.tile_visited_count))
+        print("{} tiles visited on run,episode reward {}".format(env.tile_visited_count,episode_reward))
         print("episode {}".format(episode_count))
         
         if episode_count % 10 == 0:
