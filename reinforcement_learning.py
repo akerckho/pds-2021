@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-
+SEED = np.random.randint(1,100000)
 
 if __name__ == "__main__":
     
@@ -31,6 +31,8 @@ if __name__ == "__main__":
     env = CarRacing()
     eps_greedy = 0.1
 
+    env.seed(SEED)   # seed the circuit 
+    
     if render:
         env.render()
 
@@ -44,6 +46,7 @@ if __name__ == "__main__":
     max_episode = 1000
     while episode_count < max_episode:
         state = env.reset()
+        env.seed(SEED)   # seed the circuit 
         env.setAngleZero()
         episode_reward = 0
         steps = 0
