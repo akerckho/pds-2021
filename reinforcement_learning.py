@@ -6,7 +6,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-SEED = np.random.randint(1,100000)
+SEED = 42
 
 if __name__ == "__main__":
     
@@ -14,25 +14,25 @@ if __name__ == "__main__":
     render = False
     
 
-    num_inputs = 22
-    num_actions = 9
+    num_inputs = 10
+    num_actions = 5
     num_hidden = 128
 
-    action_choices = [[0,1,0],[0,0,1],[0,0,0],[1,1,0],[1,0,1],[1,0,0],[-1,1,0],[-1,0,1],[-1,0,0]]
+    action_choices = [[0,1,0],[1,0,0],[-1,0,0],[0,0,0.8]]
 
     inputs = layers.Input(shape=(num_inputs,))
     common = layers.Dense(num_hidden, activation="relu")(inputs)
-    dropout = layers.Dropout(0.1, noise_shape=None, seed=None)
+    #dropout = layers.Dropout(0.3, noise_shape=None, seed=None)    
     action = layers.Dense(num_actions, activation="softmax")(common)
     critic = layers.Dense(1)(common)
     
+    eps_greedy = 0.1
 
     model = keras.Model(inputs=inputs, outputs=[action, critic]) 
     #model = keras.models.load_model("./model") #charger modèle existant
     gamma = 0.99  # Discount factor for past rewards
     eps = np.finfo(np.float32).eps.item()  # Smallest number such that 1.0 + eps != 1.0
     env = CarRacing()
-    eps_greedy = 0.1
 
     env.seed(SEED)   # seed the circuit 
     
@@ -50,12 +50,11 @@ if __name__ == "__main__":
     while episode_count < max_episode:
         state = env.reset()
         env.seed(SEED)   # seed the circuit 
-        #env.setAngleZero()
         episode_reward = 0
         steps = 0
         
         restart = False
-        if episode_count == 700:  #commencer à render après x itérations
+        if episode_count == 0:  #commencer à render après x itérations
             env.render()
             render = True
 
@@ -66,21 +65,28 @@ if __name__ == "__main__":
 
                 state = tf.convert_to_tensor(state)
                 state = tf.expand_dims(state, 0)
-                if frame_counter==0:
-                    # Predict action probabilities and estimated future rewards
-                    # from environment state
-                    action_probs, critic_value = model(state)
-                    critic_value_history.append(critic_value[0, 0])
 
-                    # Sample action from action probability distribution
-                    #if np.random.random() < eps_greedy: #discoverability
-                    #    action = np.random.choice(num_actions)
-                    #else:
+                #if frame_counter==0:
+                # Predict action probabilities and estimated future rewards
+                # from environment state
+                
+                action_probs, critic_value = model(state)
+                
+                critic_value_history.append(critic_value[0, 0])
+                
+                #if episode_count < 10: # TEST D'EXPLORATION FORCEE
+                #    action = np.random.choice(num_actions)
+                #else:
+                action = np.random.choice(num_actions, p=np.squeeze(action_probs))
+                
+
+                #if np.random.random() < eps_greedy: 
+                #    action = np.random.choice(num_actions)
                     
-                    action = np.random.choice(num_actions, p=np.squeeze(action_probs))
                     
-                    action_probs_history.append(tf.math.log(action_probs[0, action]))
-                    a = action_choices[action]
+                action_probs_history.append(-tf.math.log(action_probs[0, action]))
+                a = action_choices[action]
+                
 
                 state,reward, done = env.step(a)
                 rewards_history.append(reward)
@@ -96,9 +102,12 @@ if __name__ == "__main__":
                     frame_counter=0
                 if render:
                     isopen = env.render()
-                if episode_reward< -200 and not done:#arrête si le reward total est trop bas (voiture presque immobile)
+                if episode_reward < -200 and not done: #arrête si le reward total est trop bas (voiture presque immobile)
+                    episode_reward -= 100
                     done = True
                 if done or restart : 
+                    #for i in range(20):
+                    #    rewards_history[-i] -= (20-i) * 10
                     break
 
             # Calculate expected value from rewards
@@ -134,12 +143,12 @@ if __name__ == "__main__":
                 critic_losses.append(
                     huber_loss(tf.expand_dims(value, 0), tf.expand_dims(ret, 0))
                 )
-
+            
             # Backpropagation
             loss_value = sum(actor_losses) + sum(critic_losses)
             grads = tape.gradient(loss_value, model.trainable_variables)
             optimizer.apply_gradients(zip(grads, model.trainable_variables))
-
+            
             # Clear the loss and reward history
             action_probs_history.clear()
             critic_value_history.clear()
@@ -152,10 +161,11 @@ if __name__ == "__main__":
         if episode_count % 10 == 0:
             template = "running reward: {} at episode {}"
             print(template.format(env.times_succeeded, episode_count))
-        if episode_count %100 == 0:
-            model.save("./model")
+        #if episode_count %100 == 0:
+        #    model.save("./model")
         if env.times_succeeded > 5:  # Condition to consider the task solved
             print("Solved at episode {}!".format(episode_count))
             break
+
     model.save("./model")
     env.close()

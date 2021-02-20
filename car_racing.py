@@ -113,6 +113,7 @@ class FrictionDetector(contactListener):
             if not tile.road_visited and (u1 in self.env.car.wheels or u2 in self.env.car.wheels):
                 tile.road_visited = True
                 self.env.reward += 3000.0/len(self.env.track)
+                #self.env.reward += 10
                 self.env.tile_visited_count += 1
                 global Amount_Left
                 Amount_Left= (len(self.env.track)- self.env.tile_visited_count)
@@ -420,7 +421,6 @@ class CarRacing(gym.Env, EzPickle):
                 self.times_succeeded+=1
         
             x, y = self.car.hull.position
-            #car_angle = self.car.hull.angle
             
             # Vérification des collisions avec les obstacles:
             for i in range(len(self.obstacles_positions)):
@@ -428,7 +428,7 @@ class CarRacing(gym.Env, EzPickle):
                 if self.isInsideObstacle((x,y), obs1_l, obs1_r, obs2_l, obs2_r):
                         print("HAHA t'as touché le mur numéro{}".format(i))
                         done = True
-                        #step_reward -= 400     # valeur au pif ici, voir ce qu'on voudra 
+                        step_reward -= 1000  
 
             for w in self.car.wheels:
                 tiles = w.contacts
@@ -437,7 +437,7 @@ class CarRacing(gym.Env, EzPickle):
                 elif (tiles.__len__() == 0):     # vraie détection de sortie de route
                     LOCATION = "GRASS"
                     done = True
-                    #step_reward -= 400
+                    step_reward -= 1000
 
             # SENSORS
             #direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
@@ -448,6 +448,7 @@ class CarRacing(gym.Env, EzPickle):
                 if (tiles.__len__() == 0):                           
                     #print("grass on {}".format(direction[i]))
                     self.car.sensors[i].color = (1,0,0)
+
                 else:
                     in_obstacle = False
                     # Sensor d'obstacle
@@ -460,11 +461,19 @@ class CarRacing(gym.Env, EzPickle):
                             in_obstacle = True
                     if in_obstacle:
                         self.car.sensors[i].color = (1,0,0)
+
                     else:
                         self.car.sensors[i].color = (0,0,1)          
-
+        
+        # Ajout de la vitesse à l'état
         state = [round(np.linalg.norm(self.car.hull.linearVelocity)/100,1)]
+        
+        # Ajout de la position de la voiture à l'état
+        state += [self.car.hull.position[0], self.car.hull.position[1]]
+
+        # Ajout des sensors à l'état 
         state += [1 if self.car.sensors[i].contacts.__len__() == 0 else 0 for i in range(len(self.car.sensors))]
+        
         """
         methods : 
             self.car.steer(-action[0]) +1 right -1 left
@@ -477,7 +486,7 @@ class CarRacing(gym.Env, EzPickle):
         - if lost
 
         """
-        return state,step_reward, done
+        return state, step_reward, done
 
     def isInsideObstacle(self, ref_pos, pos1, pos2, pos3, pos4):
         """
