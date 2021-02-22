@@ -9,6 +9,42 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+
+class OUActionNoise:
+    """
+    'To implement better exploration by the Actor network, we use noisy 
+    perturbations, specifically an Ornstein-Uhlenbeck process for generating 
+    noise, as described in the paper. It samples noise from a correlated 
+    normal distribution.'
+    """
+    
+    def __init__(self, mean, std_deviation, theta=0.15, dt=1e-2, x_initial=None):
+        self.theta = theta
+        self.mean = mean
+        self.std_dev = std_deviation
+        self.dt = dt
+        self.x_initial = x_initial
+        self.reset()
+
+    def __call__(self):
+        # Formula taken from https://www.wikipedia.org/wiki/Ornstein-Uhlenbeck_process.
+        x = (
+            self.x_prev
+            + self.theta * (self.mean - self.x_prev) * self.dt
+            + self.std_dev * np.sqrt(self.dt) * np.random.normal(size=self.mean.shape)
+        )
+        # Store x into x_prev
+        # Makes next noise dependent on current one
+        self.x_prev = x
+        return x
+
+    def reset(self):
+        if self.x_initial is not None:
+            self.x_prev = self.x_initial
+        else:
+            self.x_prev = np.zeros_like(self.mean)
+
+
 class ActorCriticNetwork(nn.Module):
     def __init__(self, lr, input_dims, n_actions, fc1_dims=256, fc2_dims=256):
         super(ActorCriticNetwork, self).__init__()
@@ -28,6 +64,7 @@ class ActorCriticNetwork(nn.Module):
 
         return (pi, v)
 
+
 class Agent():
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions, 
                  gamma=0.99):
@@ -39,14 +76,21 @@ class Agent():
                                                fc1_dims, fc2_dims)
         self.log_prob = None
 
-    def choose_action(self, observation):
+    def choose_action(self, observation, eps_greedy):
+        #noise = noise_objet()
+
         state = T.tensor([observation], dtype=T.float).to(self.actor_critic.device)
         probabilities, _ = self.actor_critic.forward(state)
         probabilities = F.softmax(probabilities, dim=1)
         action_probs = T.distributions.Categorical(probabilities)
-        action = action_probs.sample()
+        
+        if np.random.random() < eps_greedy:
+            action = T.IntTensor([np.random.choice(4)])
+        else:     
+            action = action_probs.sample()
+        
         log_prob = action_probs.log_prob(action)    
-        self.log_prob = log_prob
+        self.log_prob = log_prob    
         
         return action.item()
 
