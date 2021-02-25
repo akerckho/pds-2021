@@ -6,12 +6,11 @@ This simulation is a bit more detailed, with wheels rotation.
 
 Created by Oleg Klimov. Licensed on the same terms as the rest of OpenAI Gym.
 """
-
+from numpy import array, sin, cos, dot
 import numpy as np
 import math
 import Box2D
 from Box2D.b2 import (edgeShape, circleShape, fixtureDef, polygonShape, revoluteJointDef, contactListener, shape)
-
 SIZE = 0.02
 ENGINE_POWER = 100000000*SIZE*SIZE
 WHEEL_MOMENT_OF_INERTIA = 4000*SIZE*SIZE
@@ -23,12 +22,51 @@ WHEELPOS = [
     (-55, -82), (+55, -82)
     ]
 SENSORPOS = [ #add sensors around car
-    #outer perim 
-    (0,+600),(+600,0),(-600,0),(-400,+475),(+400,+475),(-200,575),(200,575),(-500,+300),(500,+300),
-    #mid perim
-    (0, +450),(+400, 0),(-400, 0),(+200,+350),(-200,+350),(350,250),(-350,250),
-    #inner perim
-    (0, +300) ,(+250, 0),(-250, 0),(-175,+175),(+175,+175)]
+    ]
+    
+
+angles = []
+for i in range(30, 151, 30):
+    angles.append(i)
+pos = (2000, 0)
+SENSOR_NB = len(angles)
+sensor_angle = []
+
+def create(pos, angle):
+    rad = math.radians(angle)
+    R = array([
+        [cos(rad), -sin(rad)],
+        [sin(rad), cos(rad)]])
+    return dot(R, pos)
+
+
+n = 20
+frac = n * (3/4)
+angle_lazer = [85, 90, 95]
+dense = 0
+m = 1
+
+    
+for i in range(0, n):
+    for angle in angles:
+        v = create(pos, angle)
+        SENSORPOS.append((v[0]*(i/n), v[1]*(i/n)))
+
+"""lazer = 6
+for angle in angle_lazer:
+    v = create(pos, angle)
+    for i in range(n, lazer+n):
+        SENSORPOS.append((v[0]*(i/n), v[1]*(i/n)))"""
+
+
+"""for angle in angles:
+    v = create(pos, angle)
+    print(v)
+    for i in range(1, 9):
+        SENSORPOS.append((v[0]*(i/20), v[1]*(i/20)))"""
+
+print(len(angles))
+
 HULL_POLY1 = [
     (-60, +130), (+60, +130),
     (+60, +110), (-60, +110)
@@ -121,7 +159,7 @@ class Car:
                 angle=init_angle,
                 fixtures=fixtureDef(
                     shape=polygonShape(vertices=[(x*front_k*SIZE,y*front_k*SIZE) for x, y in WHEEL_POLY]),
-                    density=0.1,
+                    density=0.000000001,
                     categoryBits=0x0020,
                     maskBits=0x001,
                     restitution=0.0)
@@ -132,7 +170,7 @@ class Car:
                 bodyB=w,
                 localAnchorA=(wx*SIZE, wy*SIZE),
                 localAnchorB=(0,0),
-                enableMotor=True,
+                enableMotor=False,
                 enableLimit=True,
                 maxMotorTorque=180*900*SIZE*SIZE,
                 motorSpeed=0,
