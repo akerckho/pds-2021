@@ -112,7 +112,7 @@ class FrictionDetector(contactListener):
             obj.tiles.add(tile)
             if not tile.road_visited and (u1 in self.env.car.wheels or u2 in self.env.car.wheels):
                 tile.road_visited = True
-                #self.env.reward += 6000.0/len(self.env.track)
+                #self.env.reward += 100.0/len(self.env.track)
                 self.env.tile_visited_count += 1
                 global Amount_Left
                 Amount_Left= (len(self.env.track)- self.env.tile_visited_count)
@@ -477,8 +477,13 @@ class CarRacing(gym.Env, EzPickle):
                         self.car.sensors[i].color = (0,0,1)     """     
 
         #speed = round(np.linalg.norm(self.car.hull.linearVelocity)/100,1)
-    
-        contacts = [1 if self.car.sensors[i].contacts.__len__() == 0 else 0 for i in range(len(self.car.sensors))]
+        true_speed = np.sqrt(
+            np.square(self.car.hull.linearVelocity[0])
+            + np.square(self.car.hull.linearVelocity[1])
+        )
+        state = np.append(state,np.array(int(true_speed)))
+        state = np.append(state,np.array([int(self.car.hull.angularVelocity*10),int(self.car.wheels[0].joint.angle*20)]))
+        #state = np.append(state, np.array([round(i,1) for i in [0.01*self.car.wheels[0].omega,0.01*self.car.wheels[1].omega,0.01*self.car.wheels[2].omega, 0.01*self.car.wheels[3].omega]]))
 
         """
         methods : 
@@ -492,7 +497,7 @@ class CarRacing(gym.Env, EzPickle):
         - if lost
 
         """
-        return state,step_reward, done, contacts
+        return state,step_reward, done
 
     def isInsideObstacle(self, ref_pos, pos1, pos2, pos3, pos4):
         """
@@ -692,24 +697,6 @@ if __name__ == "__main__":
     
 
 
-    import tensorflow as tf
-    from tensorflow import keras
-    from tensorflow.keras import layers
-
-    num_inputs = 13
-    num_actions = 9
-    num_hidden = 128
-
-    action_choices = [[0,1,0],[0,0,1],[0,0,0],[1,1,0],[1,0,1],[1,0,0],[-1,1,0],[-1,0,1],[-1,0,0]]
-
-    inputs = layers.Input(shape=(num_inputs,))
-    common = layers.Dense(num_hidden, activation="relu")(inputs)
-    action = layers.Dense(num_actions, activation="softmax")(common)
-    critic = layers.Dense(1)(common)
-
-    model = keras.Model(inputs=inputs, outputs=[action, critic])
-
-
 
 
     env = CarRacing()
@@ -720,9 +707,9 @@ if __name__ == "__main__":
 
     isopen = True
     while isopen:
-        env.reset()
+        s_=env.reset()
         #env.setAngleZero()
-        print(env.tile_visited_count)
+        #print(env.tile_visited_count)
 
         total_reward = 0.0
         steps = 0
@@ -730,12 +717,13 @@ if __name__ == "__main__":
 
         
         while True:
-            s,r, done, speed = env.step(a)
+            s,r, done = env.step(a)
             total_reward += r
-            if steps % 200 == 0 or done:
-                print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
-                print("step {} total_reward {:+0.2f}".format(steps, total_reward))
+             #if steps % 200 == 0 or done:
+                #print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
+                #print("step {} total_reward {:+0.2f}".format(steps, total_reward))
             steps += 1
+            s_=s
             if render:
                 isopen = env.render()
             if done or restart or isopen == False:

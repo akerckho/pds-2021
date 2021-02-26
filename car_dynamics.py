@@ -240,7 +240,7 @@ class Car:
             # add small coef not to divide by zero
             w.omega += dt*ENGINE_POWER*w.gas/WHEEL_MOMENT_OF_INERTIA/(abs(w.omega)+5.0)
             self.fuel_spent += dt*ENGINE_POWER*w.gas
-
+            
             if w.brake >= 0.9:
                 w.omega = 0
             elif w.brake > 0:
