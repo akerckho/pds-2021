@@ -2,7 +2,7 @@
 Originally made for LunarLander-v2
 https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code/tree/master/ActorCritic
 """
-
+import torch
 import numpy as np
 import torch as T
 import torch.nn as nn
@@ -57,8 +57,8 @@ class ActorCriticNetwork(nn.Module):
         self.to(self.device)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
+        x = F.tanh(self.fc1(state))
+        x = F.tanh(self.fc2(x))
         pi = self.pi(x)
         v = self.v(x)
 
@@ -78,21 +78,17 @@ class Agent():
 
     def choose_action(self, observation, eps_greedy):
         #noise = noise_objet()
-
         state = T.tensor([observation], dtype=T.float).to(self.actor_critic.device)
         probabilities, _ = self.actor_critic.forward(state)
         probabilities = F.softmax(probabilities, dim=1)
-        action_probs = T.distributions.Categorical(probabilities)
+        #print(probabilities)
+        action_probs = T.distributions.Categorical(probabilities)    
+        action = action_probs.sample()
         
-        if np.random.random() < eps_greedy:
-            action = T.IntTensor([np.random.choice(4)])
-        else:     
-            action = action_probs.sample()
-        
-        log_prob = action_probs.log_prob(action)    
+        log_prob = action_probs.log_prob(action).to(self.actor_critic.device)    
         self.log_prob = log_prob    
-        
-        return action.item()
+        index = action.item()
+        return index, action_probs
 
     def learn(self, state, reward, state_, done):
         self.actor_critic.optimizer.zero_grad()
@@ -111,6 +107,12 @@ class Agent():
 
         (actor_loss + critic_loss).backward()
         self.actor_critic.optimizer.step()
+
+    def load_model(self, model_weight):
+        self.actor_critic.load_state_dict(torch.load(model_weight))
+
+    def get_model(self):
+        return self.actor_critic
 
 
 
