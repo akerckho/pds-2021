@@ -12,7 +12,7 @@ from car_racing import *
 
 from carbontracker.tracker import CarbonTracker
 
-SEED = 5
+SEED = 2
 
 
 def reward_manage(reward, state, action, speed):
@@ -26,15 +26,20 @@ def reward_manage(reward, state, action, speed):
     action 2 = turn left
     action 3 = brake
     """
-    #print(speed)
+
     good_move = np.argmax(state)
+    good_move_mapper = [
+        [0,1,2,3,4],  # kinda left
+        [5,6,7],    # kinda forward
+        [8,9,10,11]   # kinda right
+    ]
     if speed > 20 and action != 3:
         reward -= 20
     elif speed > 20 and action == 3:
         reward += 20
     elif speed < 20 and action == 3:
         reward -= 20
-    elif action == good_move:
+    elif good_move in good_move_mapper[action]:
         reward += 10
     else:
         reward -= 20
@@ -51,15 +56,15 @@ def plot_learning_curve(x, scores, figure_file):
     plt.title('Running average of previous 100 scores')
     plt.savefig(figure_file)
 
- #SEED = 2
-action_choices = [[1,0.3,0],[0,1,0], [-1,0.3,0],[0,0,1]]
-inputs = 4
+SEED = 2
+action_choices = [[1,0.1,0],[0,1,0],[-1,0.1,0],[0,0,1]]
+inputs = 14
 
 if __name__ == '__main__':
     env = CarRacing(verbose=0)
     env.seed(SEED)
     #l_rate = 1e-9
-    l_rate = 0.0000001
+    l_rate = 0.000008
     if len(sys.argv) > 1:
     	model_weight = sys.argv[1]
     	agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4,
@@ -68,37 +73,34 @@ if __name__ == '__main__':
     else: 
     	agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4,
                   fc1_dims=2048, fc2_dims=1024)
-    n_games = 10000
+    n_games = 1000
 
     fname = 'ACTOR_CRITIC_' + 'car_racing_' + str(agent.fc1_dims) + \
             '_fc1_dims_' + str(agent.fc2_dims) + '_fc2_dims_lr' + str(agent.lr) +\
             '_' + str(n_games) + 'games'
     figure_file = 'plots/' + fname + '.png'
 
-    #std_dev = 0.2
-    #ou_noise = OUActionNoise(mean=np.zeros(1), std_deviation=float(std_dev) * np.ones(1))
-    
-    eps_greedy = 0.2
     frame_number = 0
+    tile_visited_history = []
+    avg_tile_visited_history = []
     scores = []
-    greeds =  [0, 0]
-    n = 0
-    #tracker = CarbonTracker(epochs=n_games, verbose=2)
-
+    
+    tracker = CarbonTracker(epochs=n_games, epochs_before_pred=n_games//10, monitor_epochs=n_games, verbose=2)
+    max_tiles = 0
     for ep in range(n_games):
-        #tracker.epoch_start()
+        tracker.epoch_start()
         done = False
         observation = env.reset()
         env.seed(SEED)
         score = 0
         
         while not done:
-            if ep >= 1000:
+            if ep >= 0:
                 env.render()
             pre = env.tile_visited_count
             if frame_number == 0:
                 
-                action, bonus = agent.choose_action(observation, eps_greedy)   
+                action, bonus = agent.choose_action(observation)   
                 a = action_choices[action]
                 if a == 1:
                     reward += 2
@@ -120,8 +122,6 @@ if __name__ == '__main__':
                 agent.learn(observation, reward, observation_, done)
                 observation = observation_
                 
-                #if score < -100:
-                #    done = True
             else:
                 pre = env.tile_visited_count
                 _, reward, done = env.step(a)
@@ -138,109 +138,44 @@ if __name__ == '__main__':
 
             if not done:
                 score += reward
-
-            #if eps_greedy > eps_greed_min:
-            #    eps_greedy -= 0.0000001  # Je sais pas trop c'est un test
             
             frame_number += 1
-            if frame_number == 8:
+            if frame_number == 1:
                 frame_number=0
             tiles_visited = env.tile_visited_count
+            max_tiles = max(max_tiles, tiles_visited)
         scores.append(score)
 
         avg_score = np.mean(scores[-100:])
-        print("Episode {}, e_greedy = {} : Score = {} ".format(ep, eps_greedy, score))
-        print("Tiles visited : ", tiles_visited)
-        #tracker.epoch_end()
+        print("Episode {} : Score = {} ".format(ep, score))
+        print("Tiles visited : {} (max {}) ".format(tiles_visited, max_tiles))
 
-    #tracker.stop()
+        # Data that will be plotted
+        tile_visited_history.append(tiles_visited)
+        avg_tile_visited = round(np.mean(tile_visited_history[-100:]),2)
+        avg_tile_visited_history.append(avg_tile_visited)
+        
+        tracker.epoch_end()
 
+    tracker.stop()
+
+    print()
+    print()
+    print()
+    print()
+    print()
+    print("Historique des nombres de tiles visitées par épisode : ")
+    print(tile_visited_history)
+    print()
+    print()
+    print()
+    print()
+    print()
+    print("Historique des moyennes de tiles visitées sur 100 époques passées :")
+    print(avg_tile_visited_history)
     x = [i+1 for i in range(n_games)]
     name = "modelAC2v2/model"
     #plot_learning_curve(x, scores, figure_file)
     model = copy.deepcopy(agent.get_model().state_dict())
-    torch.save(model, "modelAC2v2/model")
+    torch.save(model, "modelA2Cv2/modelAllFrames1000epochs")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-import gym
-from A2C_v2 import Agent
-import numpy as np
-
-
-if __name__ == '__main__':
-    agent = Agent(act_lr=0.00001, crit_lr=0.00005)
-
-    env = gym.make('LunarLander-v2')
-    score_history = []
-    num_episodes = 2000
-
-    for ep in range(num_episodes):
-        done = False
-        score = 0
-        observation = env.reset()
-
-        while not done:
-            action = agent.choose_action(observation)
-            new_observation, reward, done, info = env.step(action)
-            agent.learn(observation, action, reward, new_observation, done)
-            observation = new_observation
-            score += reward
-        
-        score.history.append(score)
-        print("Episode {} : score = {}".format(ep, score))
-"""

@@ -76,12 +76,12 @@ class Agent():
                                                fc1_dims, fc2_dims)
         self.log_prob = None
 
-    def choose_action(self, observation, eps_greedy):
-        #noise = noise_objet()
+    def choose_action(self, observation):
+
         state = T.tensor([observation], dtype=T.float).to(self.actor_critic.device)
         probabilities, _ = self.actor_critic.forward(state)
         probabilities = F.softmax(probabilities, dim=1)
-        #print(probabilities)
+
         action_probs = T.distributions.Categorical(probabilities)    
         action = action_probs.sample()
         

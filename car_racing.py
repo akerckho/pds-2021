@@ -65,7 +65,7 @@ BORDER = 12/SCALE
 BORDER_MIN_COUNT = 10   
 Amount_Left = 0
 
-OBSTACLE_PROB = 0 #1/20
+OBSTACLE_PROB = 1/15
 
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
@@ -429,9 +429,8 @@ class CarRacing(gym.Env, EzPickle):
             for i in range(len(self.obstacles_positions)):
                 obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[i]
                 if self.isInsideObstacle((x,y), obs1_l, obs1_r, obs2_l, obs2_r):
-                        print("HAHA t'as touché le mur numéro{}".format(i))
                         done = True
-                        #step_reward -= 400     # valeur au pif ici, voir ce qu'on voudra 
+                        
             contact = False
             for w in self.car.wheels:
                 tiles = w.contacts
@@ -451,32 +450,31 @@ class CarRacing(gym.Env, EzPickle):
                 sensor_y = self.car.sensors[i].position.y
                 point1 = np.array([sensor_x, sensor_y])
                 point2 = np.array([x, y])
-                #print(point1, " ", point2)
-                # Sensor de sortie de circuit
-                if (tiles.__len__() == 0):                           
-                    #print("grass on {}".format(direction[i]))
+                
+                self.car.sensors[i].color = (0, 1, 0)
+                if not wall[i%SENSOR_NB]:
+                    state[i%SENSOR_NB] = INF
+                
+                if (tiles.__len__() == 0):
+                    # Sensor de sortie de circuit                           
                     self.car.sensors[i].color = (0,0,0)
-                    #print(wall)
                     if not wall[i%SENSOR_NB]:
                         state[i%SENSOR_NB] = np.linalg.norm(point1-point2)
                         wall[i%SENSOR_NB] = True
                 else:
-                    self.car.sensors[i].color = (0, 1, 0)
-                    if not wall[i%SENSOR_NB]:
-                        state[i%SENSOR_NB] = INF
-                """else:
-                    in_obstacle = False
                     # Sensor d'obstacle
-                    
+                    in_obstacle = False
                     for j in range(len(self.obstacles_positions)):
                         obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[j]
                         if self.isInsideObstacle((sensor_x,sensor_y), obs1_l, obs1_r, obs2_l, obs2_r):
-                            #print("obstacle on {}".format(direction[i]))
                             in_obstacle = True
                     if in_obstacle:
-                        self.car.sensors[i].color = (1,0,0)
-                    else:
-                        self.car.sensors[i].color = (0,0,1)     """     
+                        self.car.sensors[i].color = (0,0,0)
+                        if not wall[i%SENSOR_NB]:
+                            state[i%SENSOR_NB] = np.linalg.norm(point1-point2)
+                            wall[i%SENSOR_NB] = True
+                    
+                
         #self.reward += 
         #speed = round(np.linalg.norm(self.car.hull.linearVelocity)/100,1)
         #print(state)

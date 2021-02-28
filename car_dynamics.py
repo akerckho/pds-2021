@@ -25,9 +25,8 @@ SENSORPOS = [ #add sensors around car
     ]
     
 
-angles = []
-for i in range(45, 136, 45):
-    angles.append(i)
+angles = [30,40,50,60,70 ,85,90,95, 110,120,130,140,150]
+
 pos = (2500, 0)
 SENSOR_NB = len(angles)
 sensor_angle = []
@@ -65,7 +64,6 @@ for angle in angle_lazer:
     for i in range(1, 9):
         SENSORPOS.append((v[0]*(i/20), v[1]*(i/20)))"""
 
-print(len(angles))
 
 HULL_POLY1 = [
     (-60, +130), (+60, +130),
