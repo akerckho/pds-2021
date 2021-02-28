@@ -53,6 +53,7 @@ class ActorCriticNetwork(nn.Module):
         self.pi = nn.Linear(fc2_dims, n_actions)
         self.v = nn.Linear(fc2_dims, 1)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
+        print("Cuda {}".format(T.cuda.is_available()))
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 

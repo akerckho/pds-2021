@@ -4,7 +4,7 @@ https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code/tree/master/Acto
 """
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import sys
 import copy
 from A2C_v2 import Agent, OUActionNoise
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     else: 
     	agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4,
                   fc1_dims=2048, fc2_dims=1024)
-    n_games = 1000
+    n_games = 10
 
     fname = 'ACTOR_CRITIC_' + 'car_racing_' + str(agent.fc1_dims) + \
             '_fc1_dims_' + str(agent.fc2_dims) + '_fc2_dims_lr' + str(agent.lr) +\
@@ -83,9 +83,10 @@ if __name__ == '__main__':
     frame_number = 0
     tile_visited_history = []
     avg_tile_visited_history = []
+    avg_score_history = []
     scores = []
     
-    tracker = CarbonTracker(epochs=n_games, epochs_before_pred=n_games//10, monitor_epochs=n_games, verbose=2)
+    tracker = CarbonTracker(epochs=n_games, epochs_before_pred=n_games//10, monitor_epochs=n_games, components="gpu", verbose=2)
     max_tiles = 0
     for ep in range(n_games):
         tracker.epoch_start()
@@ -102,10 +103,7 @@ if __name__ == '__main__':
                 
                 action, bonus = agent.choose_action(observation)   
                 a = action_choices[action]
-                if a == 1:
-                    reward += 2
-                elif a == 2:
-                    reward += 2 
+
                 pre = env.tile_visited_count
                 observation_, reward, done= env.step(a)
                 post = env.tile_visited_count
@@ -154,28 +152,24 @@ if __name__ == '__main__':
         tile_visited_history.append(tiles_visited)
         avg_tile_visited = round(np.mean(tile_visited_history[-100:]),2)
         avg_tile_visited_history.append(avg_tile_visited)
+        avg_score_history.append(avg_score)
         
         tracker.epoch_end()
 
     tracker.stop()
 
-    print()
-    print()
-    print()
-    print()
-    print()
+
     print("Historique des nombres de tiles visitées par épisode : ")
     print(tile_visited_history)
     print()
-    print()
-    print()
-    print()
-    print()
-    print("Historique des moyennes de tiles visitées sur 100 époques passées :")
+
+    print("Historique des moyennes de tiles visitées sur 100 époques :")
     print(avg_tile_visited_history)
-    x = [i+1 for i in range(n_games)]
+    print()
+
+    #x = [i+1 for i in range(n_games)]
     name = "modelAC2v2/model"
     #plot_learning_curve(x, scores, figure_file)
     model = copy.deepcopy(agent.get_model().state_dict())
-    torch.save(model, "modelA2Cv2/modelAllFrames1000epochs")
+    torch.save(model, "modelA2Cv2/test")
 
