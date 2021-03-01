@@ -60,12 +60,12 @@ ZOOM_FOLLOW = False     # Set to False for fixed view (don't use zoom)
 
 TRACK_DETAIL_STEP = 21/SCALE
 TRACK_TURN_RATE = 0.31
-TRACK_WIDTH = 60/SCALE 
-BORDER = 12/SCALE       
+TRACK_WIDTH = 60/SCALE
+BORDER = 0/SCALE
 BORDER_MIN_COUNT = 10   
 Amount_Left = 0
 
-OBSTACLE_PROB = 1/15
+OBSTACLE_PROB = 1/20
 
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
@@ -159,6 +159,7 @@ class CarRacing(gym.Env, EzPickle):
             shape=(STATE_H, STATE_W, 3),
             dtype=np.uint8
         )
+        self.random_obs = 0
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -344,7 +345,9 @@ class CarRacing(gym.Env, EzPickle):
                         (1, 1, 1) if i % 2 == 0 else (1, 0, 0)
                     )
                 )
-            
+
+            self.random_obs += 1
+            self.seed(self.random_obs)
             if (self.np_random.uniform(0, 1) < OBSTACLE_PROB) and (last_obstacle <= 0): # i > 15 pour que la course soit toujours faisable
                 last_obstacle = 8 
 

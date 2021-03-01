@@ -25,7 +25,7 @@ SENSORPOS = [ #add sensors around car
     ]
     
 
-angles = [30,40,50,60,70 ,85,90,95, 110,120,130,140,150]
+angles = [40,50,60,70,77  ,88,90,92, 103,110,120,130,140]
 
 pos = (2500, 0)
 SENSOR_NB = len(angles)

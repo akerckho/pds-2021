@@ -12,9 +12,6 @@ from car_racing import *
 
 from carbontracker.tracker import CarbonTracker
 
-SEED = 2
-
-
 def reward_manage(reward, state, action, speed):
     """
     state[0] = right sensor
@@ -26,24 +23,29 @@ def reward_manage(reward, state, action, speed):
     action 2 = turn left
     action 3 = brake
     """
-
-    good_move = np.argmax(state)
+    noise = np.random.normal(0,.1,state.shape) # Ajout de bruit pour différencier les sensors de longueurs égales (en forcant un peu d'exploration)
+    new_state = state + noise
+    good_move = np.argmax(new_state)
     good_move_mapper = [
-        [0,1,2,3,4],  # kinda left
-        [5,6,7],    # kinda forward
-        [8,9,10,11]   # kinda right
+        [0,1,2,3,4],      # kinda left
+        [5,6,7],          # forward
+        [8,9,10,11,12]    # kinda right
     ]
-    if speed > 20 and action != 3:
-        reward -= 20
-    elif speed > 20 and action == 3:
-        reward += 20
-    elif speed < 20 and action == 3:
-        reward -= 20
-    elif good_move in good_move_mapper[action]:
+
+
+
+    if action == 1 and ((state[5]+state[6]+state[7]) > 3*45): #TEST pour pas avoir tendance à trop tourner
         reward += 10
+
+    if action == 3:
+        if speed > 100:   # mollo sur le champignon Michel
+            reward += 10
+        if speed < 5:
+            reward -= 20  # on reste pas à l'arrêt par contre
+    elif good_move in good_move_mapper[action]:
+        reward += 15
     else:
         reward -= 20
-
 
     return reward
 
@@ -57,7 +59,7 @@ def plot_learning_curve(x, scores, figure_file):
     plt.savefig(figure_file)
 
 SEED = 2
-action_choices = [[1,0.1,0],[0,1,0],[-1,0.1,0],[0,0,1]]
+action_choices = [[0.2,0.1,0],[0,1,0],[-0.2,0.1,0],[0,0,1]]
 inputs = 14
 
 if __name__ == '__main__':
@@ -73,7 +75,8 @@ if __name__ == '__main__':
     else: 
     	agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4,
                   fc1_dims=2048, fc2_dims=1024)
-    n_games = 10
+
+    n_games = 5000
 
     fname = 'ACTOR_CRITIC_' + 'car_racing_' + str(agent.fc1_dims) + \
             '_fc1_dims_' + str(agent.fc2_dims) + '_fc2_dims_lr' + str(agent.lr) +\
@@ -171,5 +174,5 @@ if __name__ == '__main__':
     name = "modelAC2v2/model"
     #plot_learning_curve(x, scores, figure_file)
     model = copy.deepcopy(agent.get_model().state_dict())
-    torch.save(model, "modelA2Cv2/test")
+    torch.save(model, "modelA2Cv2/updatedRewardSystem")
 
