@@ -112,7 +112,7 @@ class FrictionDetector(contactListener):
             obj.tiles.add(tile)
             if not tile.road_visited and (u1 in self.env.car.wheels or u2 in self.env.car.wheels):
                 tile.road_visited = True
-                #self.env.reward += 1500.0/len(self.env.track)
+
                 self.env.tile_visited_count += 1
                 global Amount_Left
                 Amount_Left= (len(self.env.track)- self.env.tile_visited_count)
@@ -412,7 +412,9 @@ class CarRacing(gym.Env, EzPickle):
         step_reward = 0
         done = False
         INF = 10000
+
         state = np.full(SENSOR_NB, INF, dtype=float)
+
         wall = [False] * len(state)
         if action is not None:  # First step without action, called from reset()
             #self.reward -= 0.1
@@ -461,17 +463,21 @@ class CarRacing(gym.Env, EzPickle):
                 if (tiles.__len__() == 0):
                     # Sensor de sortie de circuit                           
                     self.car.sensors[i].color = (0,0,0)
+
                     if not wall[i%SENSOR_NB]:
                         state[i%SENSOR_NB] = np.linalg.norm(point1-point2)
                         wall[i%SENSOR_NB] = True
                 else:
+                  
                     # Sensor d'obstacle
                     in_obstacle = False
+
                     for j in range(len(self.obstacles_positions)):
                         obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[j]
                         if self.isInsideObstacle((sensor_x,sensor_y), obs1_l, obs1_r, obs2_l, obs2_r):
                             in_obstacle = True
                     if in_obstacle:
+
                         self.car.sensors[i].color = (0,0,0)
                         if not wall[i%SENSOR_NB]:
                             state[i%SENSOR_NB] = np.linalg.norm(point1-point2)
@@ -487,6 +493,7 @@ class CarRacing(gym.Env, EzPickle):
             + np.square(self.car.hull.linearVelocity[1])
         )
         return np.append(state, true_speed), step_reward, done
+
         """
         methods : 
             self.car.steer(-action[0]) +1 right -1 left
@@ -499,7 +506,7 @@ class CarRacing(gym.Env, EzPickle):
         - if lost
 
         """
-        return state,step_reward, done
+        return state,step_reward, done, contacts
 
     def isInsideObstacle(self, ref_pos, pos1, pos2, pos3, pos4):
         """
@@ -737,8 +744,10 @@ if __name__ == "__main__":
 
         
         while True:
-            s,r, done, speed= env.step(a)
-            print("Speed : ", speed)
+
+
+            s,r, done, speed = env.step(a)
+
             total_reward += r
             if steps % 200 == 0 or done:
                 print("\naction " + str(["{:+0.2f}".format(x) for x in a]))

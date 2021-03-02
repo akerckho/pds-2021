@@ -1,6 +1,6 @@
 from typing import Counter
 from car_racing import *
-
+import sys
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -8,28 +8,49 @@ from tensorflow.keras import layers
 
 SEED = 42
 
+
+def reward_manage(reward, pre_state, action):
+    if action != 0:
+        reward+=10
+    else:
+        reward-=21
+
+
+    return reward
+
+def reward_history_manage(tile_visited_count, tiles, rewards_history):
+    progression = tile_visited_count/tiles
+    malus = 10*(progression)
+    rewards_history -= malus
+    return rewards_history
+
+
 if __name__ == "__main__":
     
+    eps_greedy = 0.1
+
 
     render = False
     
 
-    num_inputs = 10
-    num_actions = 5
-    num_hidden = 128
+    num_inputs = 5
+    num_actions = 4
+    num_hidden = 10
 
-    action_choices = [[0,1,0],[1,0,0],[-1,0,0],[0,0,0.8]]
-
-    inputs = layers.Input(shape=(num_inputs,))
-    common = layers.Dense(num_hidden, activation="relu")(inputs)
-    #dropout = layers.Dropout(0.3, noise_shape=None, seed=None)    
-    action = layers.Dense(num_actions, activation="softmax")(common)
-    critic = layers.Dense(1)(common)
-    
-    eps_greedy = 0.1
-
-    model = keras.Model(inputs=inputs, outputs=[action, critic]) 
-    #model = keras.models.load_model("./model") #charger modèle existant
+    action_choices = [[0,1,0],[0,0,0.8],[1,0.3,0],[-1,0.3,0]]
+    if len(sys.argv) < 3:
+        inputs = layers.Input(shape=(num_inputs,))
+        common = layers.Dense(100, activation="tanh")(inputs)
+        common2 = layers.Dense(25, activation="tanh")(common)
+        #dropout = layers.Dropout(0.1, noise_shape=None, seed=None)
+        action = layers.Dense(num_actions, activation="softmax")(common2)
+        critic = layers.Dense(1)(common2)
+        model = keras.Model(inputs=inputs, outputs=[action, critic])
+    elif len(sys.argv) == 3 and sys.argv[2] == "my-model":
+        model = keras.models.load_model("./mon_model") #charger modèle existant
+    else:
+        print("Mauvais encodage")
+        exit()
     gamma = 0.99  # Discount factor for past rewards
     eps = np.finfo(np.float32).eps.item()  # Smallest number such that 1.0 + eps != 1.0
     env = CarRacing()
@@ -43,53 +64,80 @@ if __name__ == "__main__":
     huber_loss = keras.losses.Huber()
     action_probs_history = []
     critic_value_history = []
-    rewards_history = []
+    rewards_history = np.array([])
     running_reward = 0
     episode_count = 0
-    max_episode = 2000
+    max_episode = 1000
+    state = []
+    retard = 9
     while episode_count < max_episode:
+        checkpoint = 10
         state = env.reset()
+        contacts = [0 for i in range(len(env.car.sensors))]
         env.seed(SEED)   # seed the circuit 
         episode_reward = 0
         steps = 0
         
         restart = False
-        if episode_count == 0:  #commencer à render après x itérations
-            env.render()
-            render = True
+
+        env.render()
+        render = True
 
         frame_counter=0
-
+        tiles_nb = len(env.track)
         with tf.GradientTape() as tape:
             while True:
 
                 state = tf.convert_to_tensor(state)
                 state = tf.expand_dims(state, 0)
 
-                #if frame_counter==0:
-                # Predict action probabilities and estimated future rewards
-                # from environment state
-                
-                action_probs, critic_value = model(state)
-                
-                critic_value_history.append(critic_value[0, 0])
-                
-                #if episode_count < 10: # TEST D'EXPLORATION FORCEE
-                #    action = np.random.choice(num_actions)
-                #else:
-                action = np.random.choice(num_actions, p=np.squeeze(action_probs))
-                
+                if frame_counter==0:
+                    # Predict action probabilities and estimated future rewards
+                    # from environment state
+                    action_probs, critic_value = model(state)
+                    critic_value_history.append(critic_value[0, 0])
+                    action = np.random.choice(num_actions, p=np.squeeze(action_probs))
+                    # Sample action from action probability distribution
+                    if np.random.random() < greeds[n]: #discoverability
+                        action_probs = np.random.random(4)
+                        action_probs /= action_probs.sum()
+                        action_probs = np.array([action_probs], dtype = float)
+                        action_probs = tf.convert_to_tensor(action_probs)
+                        action_probs = tf.cast(action_probs, tf.float32)
+                        action = np.random.choice(num_actions, p=np.squeeze(action_probs))
+                        action =np.random.choice(num_actions)
 
-                #if np.random.random() < eps_greedy: 
-                #    action = np.random.choice(num_actions)
                     
-                    
-                action_probs_history.append(-tf.math.log(action_probs[0, action]))
-                a = action_choices[action]
-                
+                    action_probs_history.append(tf.math.log(action_probs[0, action]))
+                    #print(action_probs)
+                    a = action_choices[action]
 
-                state,reward, done = env.step(a)
-                rewards_history.append(reward)
+                state,reward, done, contacts = env.step(a)
+                #print(state)
+                """print("Coté droit : ", state[:-3])
+                print("Coté Gauche : ", state[-2:])
+                print("Droit devant : ", state[1:4])"""
+                if action == 0 and np.sum(state[1:4]) < 25:
+                    #print("Tu vas te cogner et tu veux avancer ?")
+                    reward -= 100
+                if action == 2 and np.sum(state[:-3]) < 25:
+                    #print("mauvaise idée")
+                    reward -= 20
+                elif action == 3 and np.sum(state[-2:]) < 25:
+                    #print("mauvaise idée")
+                    reward -= 20
+
+                visited = env.tile_visited_count
+                if visited > checkpoint:
+                    reward += 600
+                    checkpoint += 5
+
+                #reward += 3000/len(env.track)
+                #reward -= 0.1
+                reward = reward_manage(reward, state, action)
+
+                #print(reward)
+                rewards_history = np.append(rewards_history, reward)
                 episode_reward += reward
                 """
                 if steps % 200 == 0 or done:
@@ -102,14 +150,22 @@ if __name__ == "__main__":
                     frame_counter=0
                 if render:
                     isopen = env.render()
-                if episode_reward < -200 and not done: #arrête si le reward total est trop bas (voiture presque immobile)
-                    episode_reward -= 100
+
+                if episode_reward< -5000 and not done:#arrête si le reward total est trop bas (voiture presque immobile)
+
                     done = True
                 if done or restart : 
                     #for i in range(20):
                     #    rewards_history[-i] -= (20-i) * 10
                     break
+            tile_visited_count = env.tile_visited_count
 
+            #rewards_history = reward_history_manage(tile_visited_count, tiles_nb, rewards_history)
+            """print("REWARDS !!!!!", rewards_history)
+            print("Somme : ", np.sum(rewards_history))"""
+            if visited < retard:
+                rewards_history -= 30000
+            episode_reward = np.sum(rewards_history)
             # Calculate expected value from rewards
             # - At each timestep what was the total reward received after that timestep
             # - Rewards in the past are discounted by multiplying them with gamma
@@ -152,20 +208,21 @@ if __name__ == "__main__":
             # Clear the loss and reward history
             action_probs_history.clear()
             critic_value_history.clear()
-            rewards_history.clear()
+            rewards_history = np.array([])
         # Log details
         episode_count += 1
         print("{} tiles visited on run,episode reward {}".format(env.tile_visited_count,episode_reward))
-        print("episode {}".format(episode_count))
+        print("episode {}, greed = {}".format(episode_count, greeds[n]))
         
         if episode_count % 10 == 0:
             template = "running reward: {} at episode {}"
             print(template.format(env.times_succeeded, episode_count))
-        #if episode_count %100 == 0:
-        #    model.save("./model")
+
+        if episode_count %100 == 0:
+            model.save("./model")
+            n = (n+1)%2
         if env.times_succeeded > 5:  # Condition to consider the task solved
             print("Solved at episode {}!".format(episode_count))
             break
-
-    model.save("./model")
+    model.save("./mon_model")
     env.close()
