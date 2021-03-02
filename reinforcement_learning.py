@@ -6,7 +6,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-SEED = np.random.randint(1,100000)
+SEED = 42
 
 
 def reward_manage(reward, pre_state, action):
@@ -14,6 +14,7 @@ def reward_manage(reward, pre_state, action):
         reward+=10
     else:
         reward-=21
+
 
     return reward
 
@@ -26,6 +27,7 @@ def reward_history_manage(tile_visited_count, tiles, rewards_history):
 
 if __name__ == "__main__":
     
+    eps_greedy = 0.1
 
 
     render = False
@@ -52,11 +54,6 @@ if __name__ == "__main__":
     gamma = 0.99  # Discount factor for past rewards
     eps = np.finfo(np.float32).eps.item()  # Smallest number such that 1.0 + eps != 1.0
     env = CarRacing()
-    if len(sys.argv) < 2:
-        greeds = [0, 0.7]
-    else:
-        greeds = [float(sys.argv[1]), float(sys.argv[1])]
-    n = 1
 
     env.seed(SEED)   # seed the circuit 
     
@@ -78,11 +75,11 @@ if __name__ == "__main__":
         state = env.reset()
         contacts = [0 for i in range(len(env.car.sensors))]
         env.seed(SEED)   # seed the circuit 
-        #env.setAngleZero()
         episode_reward = 0
         steps = 0
         
         restart = False
+
         env.render()
         render = True
 
@@ -93,6 +90,7 @@ if __name__ == "__main__":
 
                 state = tf.convert_to_tensor(state)
                 state = tf.expand_dims(state, 0)
+
                 if frame_counter==0:
                     # Predict action probabilities and estimated future rewards
                     # from environment state
@@ -152,9 +150,13 @@ if __name__ == "__main__":
                     frame_counter=0
                 if render:
                     isopen = env.render()
+
                 if episode_reward< -5000 and not done:#arrête si le reward total est trop bas (voiture presque immobile)
+
                     done = True
                 if done or restart : 
+                    #for i in range(20):
+                    #    rewards_history[-i] -= (20-i) * 10
                     break
             tile_visited_count = env.tile_visited_count
 
@@ -197,12 +199,12 @@ if __name__ == "__main__":
                 critic_losses.append(
                     huber_loss(tf.expand_dims(value, 0), tf.expand_dims(ret, 0))
                 )
-
+            
             # Backpropagation
             loss_value = sum(actor_losses) + sum(critic_losses)
             grads = tape.gradient(loss_value, model.trainable_variables)
             optimizer.apply_gradients(zip(grads, model.trainable_variables))
-
+            
             # Clear the loss and reward history
             action_probs_history.clear()
             critic_value_history.clear()
@@ -215,6 +217,7 @@ if __name__ == "__main__":
         if episode_count % 10 == 0:
             template = "running reward: {} at episode {}"
             print(template.format(env.times_succeeded, episode_count))
+
         if episode_count %100 == 0:
             model.save("./model")
             n = (n+1)%2

@@ -25,10 +25,10 @@ SENSORPOS = [ #add sensors around car
     ]
     
 
-angles = []
-for i in range(30, 151, 30):
-    angles.append(i)
-pos = (2000, 0)
+angles = [40,50,60,70,77  ,88,90,92, 103,110,120,130,140]
+
+pos = (2500, 0)
+
 SENSOR_NB = len(angles)
 sensor_angle = []
 
@@ -64,8 +64,6 @@ for angle in angle_lazer:
     print(v)
     for i in range(1, 9):
         SENSORPOS.append((v[0]*(i/20), v[1]*(i/20)))"""
-
-print(len(angles))
 
 HULL_POLY1 = [
     (-60, +130), (+60, +130),
@@ -159,7 +157,9 @@ class Car:
                 angle=init_angle,
                 fixtures=fixtureDef(
                     shape=polygonShape(vertices=[(x*front_k*SIZE,y*front_k*SIZE) for x, y in WHEEL_POLY]),
-                    density=0.000000001,
+
+                    density=0.000000000000001,
+
                     categoryBits=0x0020,
                     maskBits=0x001,
                     restitution=0.0)

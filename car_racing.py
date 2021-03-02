@@ -60,12 +60,12 @@ ZOOM_FOLLOW = False     # Set to False for fixed view (don't use zoom)
 
 TRACK_DETAIL_STEP = 21/SCALE
 TRACK_TURN_RATE = 0.31
-TRACK_WIDTH = 60/SCALE 
-BORDER = 12/SCALE       
+TRACK_WIDTH = 60/SCALE
+BORDER = 0/SCALE
 BORDER_MIN_COUNT = 10   
 Amount_Left = 0
 
-OBSTACLE_PROB = 0 #1/20
+OBSTACLE_PROB = 1/20
 
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
@@ -112,7 +112,7 @@ class FrictionDetector(contactListener):
             obj.tiles.add(tile)
             if not tile.road_visited and (u1 in self.env.car.wheels or u2 in self.env.car.wheels):
                 tile.road_visited = True
-                #self.env.reward += 6000.0/len(self.env.track)
+
                 self.env.tile_visited_count += 1
                 global Amount_Left
                 Amount_Left= (len(self.env.track)- self.env.tile_visited_count)
@@ -159,6 +159,7 @@ class CarRacing(gym.Env, EzPickle):
             shape=(STATE_H, STATE_W, 3),
             dtype=np.uint8
         )
+        self.random_obs = 0
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -344,7 +345,9 @@ class CarRacing(gym.Env, EzPickle):
                         (1, 1, 1) if i % 2 == 0 else (1, 0, 0)
                     )
                 )
-            
+
+            self.random_obs += 1
+            self.seed(self.random_obs)
             if (self.np_random.uniform(0, 1) < OBSTACLE_PROB) and (last_obstacle <= 0): # i > 15 pour que la course soit toujours faisable
                 last_obstacle = 8 
 
@@ -392,7 +395,7 @@ class CarRacing(gym.Env, EzPickle):
                 )
         self.car = Car(self.world, *self.track[0][1:4])
 
-        return self.step(None)[0]
+        return self.step([0,0.1,0])[0]
 
     def step(self, action):
 
@@ -409,7 +412,9 @@ class CarRacing(gym.Env, EzPickle):
         step_reward = 0
         done = False
         INF = 10000
-        state = np.full(SENSOR_NB, INF)
+
+        state = np.full(SENSOR_NB, INF, dtype=float)
+
         wall = [False] * len(state)
         if action is not None:  # First step without action, called from reset()
             #self.reward -= 0.1
@@ -429,10 +434,9 @@ class CarRacing(gym.Env, EzPickle):
             for i in range(len(self.obstacles_positions)):
                 obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[i]
                 if self.isInsideObstacle((x,y), obs1_l, obs1_r, obs2_l, obs2_r):
-                        print("HAHA t'as touché le mur numéro{}".format(i))
                         done = True
-                        #step_reward -= 400     # valeur au pif ici, voir ce qu'on voudra 
-
+                        
+            contact = False
             for w in self.car.wheels:
                 tiles = w.contacts
                 if (tiles.__len__() > 0):
@@ -441,6 +445,7 @@ class CarRacing(gym.Env, EzPickle):
                     LOCATION = "GRASS"
                     done = True
                     #step_reward -= 400
+                    contact = True
 
             # SENSORS
             #direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
@@ -450,35 +455,44 @@ class CarRacing(gym.Env, EzPickle):
                 sensor_y = self.car.sensors[i].position.y
                 point1 = np.array([sensor_x, sensor_y])
                 point2 = np.array([x, y])
-                # Sensor de sortie de circuit
-                if (tiles.__len__() == 0):                           
-                    #print("grass on {}".format(direction[i]))
-                    self.car.sensors[i].color = (1,0,0)
-                    #print(wall)
+                
+                self.car.sensors[i].color = (0, 1, 0)
+                if not wall[i%SENSOR_NB]:
+                    state[i%SENSOR_NB] = INF
+                
+                if (tiles.__len__() == 0):
+                    # Sensor de sortie de circuit                           
+                    self.car.sensors[i].color = (0,0,0)
+
                     if not wall[i%SENSOR_NB]:
                         state[i%SENSOR_NB] = np.linalg.norm(point1-point2)
                         wall[i%SENSOR_NB] = True
                 else:
-                    self.car.sensors[i].color = (0, 0, 1)
-                    if not wall[i%SENSOR_NB]:
-                        state[i%SENSOR_NB] = INF
-                """else:
-                    in_obstacle = False
+                  
                     # Sensor d'obstacle
-                    
+                    in_obstacle = False
+
                     for j in range(len(self.obstacles_positions)):
                         obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[j]
                         if self.isInsideObstacle((sensor_x,sensor_y), obs1_l, obs1_r, obs2_l, obs2_r):
-                            #print("obstacle on {}".format(direction[i]))
                             in_obstacle = True
                     if in_obstacle:
-                        self.car.sensors[i].color = (1,0,0)
-                    else:
-                        self.car.sensors[i].color = (0,0,1)     """     
 
+                        self.car.sensors[i].color = (0,0,0)
+                        if not wall[i%SENSOR_NB]:
+                            state[i%SENSOR_NB] = np.linalg.norm(point1-point2)
+                            wall[i%SENSOR_NB] = True
+                    
+                
+        #self.reward += 
         #speed = round(np.linalg.norm(self.car.hull.linearVelocity)/100,1)
-    
-        contacts = [1 if self.car.sensors[i].contacts.__len__() == 0 else 0 for i in range(len(self.car.sensors))]
+        #print(state)
+        #contacts = [1 if self.car.sensors[i].contacts.__len__() == 0 else 0 for i in range(len(self.car.sensors))]
+        true_speed = np.sqrt(
+            np.square(self.car.hull.linearVelocity[0])
+            + np.square(self.car.hull.linearVelocity[1])
+        )
+        return np.append(state, true_speed), step_reward, done
 
         """
         methods : 
@@ -692,7 +706,7 @@ if __name__ == "__main__":
     
 
 
-    import tensorflow as tf
+    """import tensorflow as tf
     from tensorflow import keras
     from tensorflow.keras import layers
 
@@ -707,7 +721,7 @@ if __name__ == "__main__":
     action = layers.Dense(num_actions, activation="softmax")(common)
     critic = layers.Dense(1)(common)
 
-    model = keras.Model(inputs=inputs, outputs=[action, critic])
+    model = keras.Model(inputs=inputs, outputs=[action, critic])"""
 
 
 
@@ -730,7 +744,10 @@ if __name__ == "__main__":
 
         
         while True:
+
+
             s,r, done, speed = env.step(a)
+
             total_reward += r
             if steps % 200 == 0 or done:
                 print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
