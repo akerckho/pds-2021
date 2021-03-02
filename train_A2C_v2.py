@@ -34,12 +34,12 @@ def reward_manage(reward, state, action, speed):
 
 
 
-    if action == 1 and ((state[5]+state[6]+state[7]) > 3*45): #TEST pour pas avoir tendance à trop tourner
+    if action == 1 and ((state[5]+state[6]+state[7]) > 3*44): #TEST pour pas avoir tendance à trop tourner
         reward += 10
 
     if action == 3:
-        if speed > 100:   # mollo sur le champignon Michel
-            reward += 10
+        if speed > 50:   # mollo sur le champignon Michel
+            reward += 20
         if speed < 5:
             reward -= 20  # on reste pas à l'arrêt par contre
     elif good_move in good_move_mapper[action]:
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     	agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4,
                   fc1_dims=2048, fc2_dims=1024)
 
-    n_games = 5000
+    n_games = 1000
 
     fname = 'ACTOR_CRITIC_' + 'car_racing_' + str(agent.fc1_dims) + \
             '_fc1_dims_' + str(agent.fc2_dims) + '_fc2_dims_lr' + str(agent.lr) +\
@@ -174,5 +174,5 @@ if __name__ == '__main__':
     name = "modelAC2v2/model"
     #plot_learning_curve(x, scores, figure_file)
     model = copy.deepcopy(agent.get_model().state_dict())
-    torch.save(model, "modelA2Cv2/updatedRewardSystem")
+    torch.save(model, "modelA2Cv2/bonneNuit")
 
