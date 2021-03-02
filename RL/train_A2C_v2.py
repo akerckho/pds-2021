@@ -7,9 +7,15 @@ import numpy as np
 import sys
 import copy
 from A2C_v2 import Agent, OUActionNoise
+from carbontracker.tracker import CarbonTracker
+
+import os,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
+
 from car_racing import *
 
-from carbontracker.tracker import CarbonTracker
 
 def reward_manage(reward, state, action, speed):
     """
@@ -57,7 +63,7 @@ if __name__ == '__main__':
     	model_weight = sys.argv[1]  	
     	agent.load_model(model_weight)
 
-    n_games = 1000
+    n_games = 1
 
     frame_number = 0
     tile_visited_history = []
@@ -118,7 +124,6 @@ if __name__ == '__main__':
 
     tracker.stop()
 
-
     print("Historique des nombres de tiles visitées par épisode : ")
     print(tile_visited_history)
     print()
@@ -128,5 +133,5 @@ if __name__ == '__main__':
     print()
 
     model = copy.deepcopy(agent.get_model().state_dict())
-    torch.save(model, "modelA2Cv2/bonneNuit")
+    torch.save(model, "modelA2Cv2/unnamed")
 
