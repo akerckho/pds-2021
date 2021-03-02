@@ -52,19 +52,6 @@ for i in range(0, n):
         v = create(pos, angle)
         SENSORPOS.append((v[0]*(i/n), v[1]*(i/n)))
 
-"""lazer = 6
-for angle in angle_lazer:
-    v = create(pos, angle)
-    for i in range(n, lazer+n):
-        SENSORPOS.append((v[0]*(i/n), v[1]*(i/n)))"""
-
-
-"""for angle in angles:
-    v = create(pos, angle)
-    print(v)
-    for i in range(1, 9):
-        SENSORPOS.append((v[0]*(i/20), v[1]*(i/20)))"""
-
 HULL_POLY1 = [
     (-60, +130), (+60, +130),
     (+60, +110), (-60, +110)

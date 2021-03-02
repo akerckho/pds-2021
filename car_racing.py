@@ -96,11 +96,6 @@ class FrictionDetector(contactListener):
 
         # Change la couleur des tiles parcourues
         
-        """
-        w = []
-        for b in self.env.car.wheels:
-            w += b.fixtures 
-        """
         if u1 in self.env.car.wheels or u2 in self.env.car.wheels:
             tile.color[0] = ROAD_COLOR[0]
             tile.color[1] = ROAD_COLOR[1]
@@ -407,8 +402,6 @@ class CarRacing(gym.Env, EzPickle):
         self.world.Step(1.0/FPS, 6*30, 2*30)
         self.t += 1.0/FPS
 
-        #self.render("state_pixels")
-
         step_reward = 0
         done = False
         INF = 10000
@@ -417,8 +410,7 @@ class CarRacing(gym.Env, EzPickle):
 
         wall = [False] * len(state)
         if action is not None:  # First step without action, called from reset()
-            #self.reward -= 0.1
-            #self.reward -= 0.7/(round(np.linalg.norm(self.car.hull.linearVelocity)/100,1)+1)
+            
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
@@ -428,7 +420,6 @@ class CarRacing(gym.Env, EzPickle):
                 self.times_succeeded+=1
         
             x, y = self.car.hull.position
-            #car_angle = self.car.hull.angle
             
             # Vérification des collisions avec les obstacles:
             for i in range(len(self.obstacles_positions)):
@@ -448,7 +439,6 @@ class CarRacing(gym.Env, EzPickle):
                     contact = True
 
             # SENSORS
-            #direction = ["FRONT","FRONT NEAR","RIGHT","RIGHT NEAR","LEFT","LEFT NEAR","LEFT DIAG","LEFT DIAG NEAR","RIGHT DIAG","RIGHT DIAG NEAR"]
             for i in range(len(self.car.sensors)): #check if sensors collide with grass
                 tiles = self.car.sensors[i].contacts
                 sensor_x = self.car.sensors[i].position.x
@@ -483,30 +473,12 @@ class CarRacing(gym.Env, EzPickle):
                             state[i%SENSOR_NB] = np.linalg.norm(point1-point2)
                             wall[i%SENSOR_NB] = True
                     
-                
-        #self.reward += 
-        #speed = round(np.linalg.norm(self.car.hull.linearVelocity)/100,1)
-        #print(state)
-        #contacts = [1 if self.car.sensors[i].contacts.__len__() == 0 else 0 for i in range(len(self.car.sensors))]
         true_speed = np.sqrt(
             np.square(self.car.hull.linearVelocity[0])
             + np.square(self.car.hull.linearVelocity[1])
         )
         return np.append(state, true_speed), step_reward, done
 
-        """
-        methods : 
-            self.car.steer(-action[0]) +1 right -1 left
-            self.car.gas(action[1]) 0 to 0.8
-            self.car.brake(action[2]) 0 or 1
-
-        reward:
-        + for time
-        - if slow speed
-        - if lost
-
-        """
-        return state,step_reward, done, contacts
 
     def isInsideObstacle(self, ref_pos, pos1, pos2, pos3, pos4):
         """

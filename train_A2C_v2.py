@@ -4,7 +4,6 @@ https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code/tree/master/Acto
 """
 import torch
 import numpy as np
-#import matplotlib.pyplot as plt
 import sys
 import copy
 from A2C_v2 import Agent, OUActionNoise
@@ -14,10 +13,6 @@ from carbontracker.tracker import CarbonTracker
 
 def reward_manage(reward, state, action, speed):
     """
-    state[0] = right sensor
-    state[1] = middle sensor
-    state[2] = left sensor
-
     action 0 = turn right
     action 1 = accelerate
     action 2 = turn left
@@ -32,9 +27,7 @@ def reward_manage(reward, state, action, speed):
         [8,9,10,11,12]    # kinda right
     ]
 
-
-
-    if action == 1 and ((state[5]+state[6]+state[7]) > 3*44): #TEST pour pas avoir tendance à trop tourner
+    if action == 1 and ((state[5]+state[6]+state[7]) > 3*44): 
         reward += 10
 
     if action == 3:
@@ -50,14 +43,6 @@ def reward_manage(reward, state, action, speed):
     return reward
 
 
-def plot_learning_curve(x, scores, figure_file):
-    running_avg = np.zeros(len(scores))
-    for i in range(len(running_avg)):
-        running_avg[i] = np.mean(scores[max(0, i-100):(i+1)])
-    plt.plot(x, running_avg)
-    plt.title('Running average of previous 100 scores')
-    plt.savefig(figure_file)
-
 SEED = 2
 action_choices = [[0.2,0.1,0],[0,1,0],[-0.2,0.1,0],[0,0,1]]
 inputs = 14
@@ -65,29 +50,18 @@ inputs = 14
 if __name__ == '__main__':
     env = CarRacing(verbose=0)
     env.seed(SEED)
-    #l_rate = 1e-9
     l_rate = 0.000008
+
+    agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4, fc1_dims=2048, fc2_dims=1024)
     if len(sys.argv) > 1:
-    	model_weight = sys.argv[1]
-    	agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4,
-                  fc1_dims=2048, fc2_dims=1024)
+    	model_weight = sys.argv[1]  	
     	agent.load_model(model_weight)
-    else: 
-    	agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4,
-                  fc1_dims=2048, fc2_dims=1024)
 
     n_games = 1000
-
-    fname = 'ACTOR_CRITIC_' + 'car_racing_' + str(agent.fc1_dims) + \
-            '_fc1_dims_' + str(agent.fc2_dims) + '_fc2_dims_lr' + str(agent.lr) +\
-            '_' + str(n_games) + 'games'
-    figure_file = 'plots/' + fname + '.png'
 
     frame_number = 0
     tile_visited_history = []
     avg_tile_visited_history = []
-    avg_score_history = []
-    scores = []
     
     tracker = CarbonTracker(epochs=n_games, epochs_before_pred=n_games//10, monitor_epochs=n_games, components="gpu", verbose=2)
     max_tiles = 0
@@ -111,13 +85,6 @@ if __name__ == '__main__':
                 observation_, reward, done= env.step(a)
                 post = env.tile_visited_count
 
-                #if not done:
-                #    score += reward
-                progression = False
-
-                if post > pre:
-                    progression = True
-
                 reward = reward_manage(reward, observation, action, observation[-1])
 
                 agent.learn(observation, reward, observation_, done)
@@ -127,13 +94,6 @@ if __name__ == '__main__':
                 pre = env.tile_visited_count
                 _, reward, done = env.step(a)
                 post = env.tile_visited_count
-
-                #if not done:
-                #    score += reward
-                progression = False
-
-                if post > pre:
-                    progression = True
                     
                 reward = reward_manage(reward, observation, action, observation[-1])
 
@@ -145,9 +105,7 @@ if __name__ == '__main__':
                 frame_number=0
             tiles_visited = env.tile_visited_count
             max_tiles = max(max_tiles, tiles_visited)
-        scores.append(score)
 
-        avg_score = np.mean(scores[-100:])
         print("Episode {} : Score = {} ".format(ep, score))
         print("Tiles visited : {} (max {}) ".format(tiles_visited, max_tiles))
 
@@ -155,7 +113,6 @@ if __name__ == '__main__':
         tile_visited_history.append(tiles_visited)
         avg_tile_visited = round(np.mean(tile_visited_history[-100:]),2)
         avg_tile_visited_history.append(avg_tile_visited)
-        avg_score_history.append(avg_score)
         
         tracker.epoch_end()
 
@@ -170,9 +127,6 @@ if __name__ == '__main__':
     print(avg_tile_visited_history)
     print()
 
-    #x = [i+1 for i in range(n_games)]
-    name = "modelAC2v2/model"
-    #plot_learning_curve(x, scores, figure_file)
     model = copy.deepcopy(agent.get_model().state_dict())
     torch.save(model, "modelA2Cv2/bonneNuit")
 
