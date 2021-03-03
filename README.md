@@ -36,7 +36,8 @@ Pour faire tourner RL/train_A2C_v2.py vous aurez besoin de ces modules, tous ins
 - carbontracker (vous aurez peut-être besoin de : ```sudo chmod a+r /sys/class/powercap/intel-rapl:0/energy_uj```)
 
 Une fois tous ces modules installés, vous pourrez lancer l'entraînement et son affichage graphique grâce à : <br>
-```python3 RL/train_A2C_v2.py```
+```cd RL``` <br>
+```python3 train_A2C_v2.py <modelA2Cv2/your_saved_model>```
 
 ## :checkered_flag: Performance
 ### Réseau neuronal convolutif
