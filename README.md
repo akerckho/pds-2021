@@ -53,11 +53,12 @@ Actual consumption for 2000 epoch(s):
 	CO2eq:	186.663184 g
 	This is equivalent to: 1.550359 km travelled by car
 ```
-<div align=center><Image src="Results/A2C_2000epochs.png" width="50%"/></div> <!-- Le center align ne marche pas Sadge -->
+<div align=center><Image src="Results/A2C_2000epochs.png" width="50%"/></div>
 <div align=center><img src="Results/A2C.gif" width="50%"/></div>
 
 
-
+## :bulb: Légende de l'interface utilisateur
+<div align=center><Image src="Image/UI_legend.png" width="50%"/></div>
 
 
 
