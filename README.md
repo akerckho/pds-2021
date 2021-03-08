@@ -24,6 +24,7 @@ Ce projet à été réalisé dans le cadre du Printemps des Sciences, un événe
 ## :exclamation: Testez chez vous !
 
 ###Packages à installer
+
 Pour faire tourner les différents modèles vous aurez besoin de ces modules, tous instalables via le gestionnaire de paquets *pip*. 
 - numpy
 - torch
