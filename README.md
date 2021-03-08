@@ -23,24 +23,43 @@ Ce projet à été réalisé dans le cadre du Printemps des Sciences, un événe
 
 ## :exclamation: Testez chez vous !
 
-### Réseau neuronal convolutif
-TODO: remplir ici Armend
-
-### Actor Critic
-Pour faire tourner RL/train_A2C_v2.py vous aurez besoin de ces modules, tous instalables via le gestionnaire de paquets *pip*. 
+###Packages à installer
+Pour faire tourner les différents modèles vous aurez besoin de ces modules, tous instalables via le gestionnaire de paquets *pip*. 
 - numpy
 - torch
+- torchvision
+- imageio
 - pyglet
 - gym
 - Box2D
 - carbontracker (vous aurez peut-être besoin de : ```sudo chmod a+r /sys/class/powercap/intel-rapl:0/energy_uj```)
 
-Une fois tous ces modules installés, vous pourrez lancer l'entraînement et son affichage graphique grâce à : <br>
-```cd RL``` <br>
-```python3 train_A2C_v2.py <modelA2Cv2/your_saved_model>```
+### Réseau neuronal convolutif
+Pour entrainer cette IA il faut procéder en plusieurs étapes.
+
+* Enregistrer un set d'entrainement
+  - python3 record_dataset.py train_set 
+
+* Enregistrer un set de teste
+  - python3 record_dataset.py test_set
+
+* Entrainer l'IA
+  - python3 train.py
+
+* Voir les progrès de l'IA sur l'un des poids(ses neurones) enregistrés lors de l'entrainement
+  - python3 drive.py path/models2/model-x.weights
+
+### Actor Critic
+
+Vous pouvez lancer l'entraînement et son affichage graphique grâce à : <br>
+```python3 RL/train_A2C_v2.py```
+
 
 ## :checkered_flag: Performance
+
 ### Réseau neuronal convolutif
+
+<div align=center><img src="Results/CNN.gif" width="50%"/></div>
 
 ### Actor Critic
 ```
@@ -53,41 +72,10 @@ Actual consumption for 2000 epoch(s):
 	CO2eq:	186.663184 g
 	This is equivalent to: 1.550359 km travelled by car
 ```
-<div align=center><Image src="Results/A2C_2000epochs.png" width="50%"/></div>
+<div align=center><Image src="Results/A2C_2000epochs.png" width="50%"/></div> <!-- Le center align ne marche pas Sadge -->
 <div align=center><img src="Results/A2C.gif" width="50%"/></div>
 
 
 ## :bulb: Légende de l'interface utilisateur
 <div align=center><Image src="Image/UI_legend.png" width="50%"/></div>
-
-
-
-Sous cette ligne == à supprimer à terme
-### PACKAGE TO INSTALL :
-
-- car_racing.py:
-  - numpy
-  - pyglet
-  - gym
-  - Box2D
-	
-- dqnCustom.py:
-  - torch
-  - torchvision
-
-- record_dataset.py
-  - imageio
-
-- train.py
-  - carbontracker
-  - Don't forget to : sudo chmod a+r /sys/class/powercap/intel-rapl:0/energy_uj
-
-
-### ENTRAINEMENT D'UNE IA
-* python3 record_dataset.py train_set 
-* python3 record_dataset.py test_set  
-
-* python3 train.py
-
-* python3 drive.py $PWD/models2/model-5.weights
 
