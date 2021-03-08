@@ -65,7 +65,7 @@ BORDER = 0/SCALE
 BORDER_MIN_COUNT = 10   
 Amount_Left = 0
 
-OBSTACLE_PROB = 1/20
+OBSTACLE_PROB = 1/25
 
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
@@ -122,7 +122,7 @@ class CarRacing(gym.Env, EzPickle):
         'video.frames_per_second': FPS
     }
 
-    def __init__(self, verbose=1):
+    def __init__(self, verbose=1, sensors_activated = True):
         EzPickle.__init__(self)
         self.obstacles_positions = [] # sera rempli de 4-tuples contenant la position de chaque mur
         self.seed()
@@ -140,6 +140,7 @@ class CarRacing(gym.Env, EzPickle):
         self.prev_reward = 0.0
         self.times_succeeded=0
         self.verbose = verbose
+        self.sensors_activated = sensors_activated
         self.fd_tile = fixtureDef(
             shape=polygonShape(vertices=[(0, 0), (1, 0), (1, -1), (0, -1)])
         )
@@ -388,7 +389,7 @@ class CarRacing(gym.Env, EzPickle):
                     "retry to generate track (normal if there are not many"
                     "instances of this message)"
                 )
-        self.car = Car(self.world, *self.track[0][1:4])
+        self.car = Car(self.world, *self.track[0][1:4], sensors_activated = self.sensors_activated)
 
         return self.step([0,0.1,0])[0]
 
@@ -576,6 +577,14 @@ class CarRacing(gym.Env, EzPickle):
         if mode == 'human':
             win.flip()
             return self.viewer.isopen
+        image_data = (
+            pyglet.image.get_buffer_manager().get_color_buffer().get_image_data()
+        )
+        arr = np.fromstring(image_data.get_data(), dtype=np.uint8, sep="")
+        arr = arr.reshape(VP_H, VP_W, 4)
+        arr = arr[::-1, :, 0:3]
+
+        return arr
 
     def close(self):
         if self.viewer is not None:
@@ -655,6 +664,59 @@ class CarRacing(gym.Env, EzPickle):
         self.car.hull.angle = 0
     
 
+class CarRacingImage(CarRacing):
+    def __init__(self):
+        global ZOOM
+        super(CarRacingImage, self).__init__()
+        self.sensors_activated = False
+        ZOOM = 12
+
+    def step(self, action):
+
+        if action is not None:
+            self.car.steer(-action[0])
+            self.car.gas(action[1])
+            self.car.brake(action[2])
+        self.car.step(1.0/FPS)
+        self.world.Step(1.0/FPS, 6*30, 2*30)
+        self.t += 1.0/FPS
+
+        step_reward = 0
+        done = False
+        INF = 10000
+
+        state = self.render("state_pixels")
+
+        if action is not None:  # First step without action, called from reset()
+            
+            self.car.fuel_spent = 0.0
+            step_reward = self.reward - self.prev_reward
+            self.prev_reward = self.reward
+
+            if self.tile_visited_count == len(self.track):
+                done = True
+                self.times_succeeded+=1
+        
+            x, y = self.car.hull.position
+            
+            # Vérification des collisions avec les obstacles:
+            for i in range(len(self.obstacles_positions)):
+                obs1_l, obs1_r, obs2_r, obs2_l = self.obstacles_positions[i]
+                if self.isInsideObstacle((x,y), obs1_l, obs1_r, obs2_l, obs2_r):
+                        done = True
+                        
+            contact = False
+            for w in self.car.wheels:
+                tiles = w.contacts
+                if (tiles.__len__() > 0):
+                    LOCATION = "TILE"
+                elif (tiles.__len__() == 0):     # vraie détection de sortie de route
+                    LOCATION = "GRASS"
+                    done = True
+                    contact = True
+                    
+        return state, step_reward, done
+
 if __name__ == "__main__":
     from pyglet.window import key
     a = np.array([0.0, 0.0, 0.0])
@@ -675,27 +737,6 @@ if __name__ == "__main__":
             if k == key.RIGHT and a[0] == +1.0: a[0] = 0
             if k == key.UP:    a[1] = 0
             if k == key.DOWN:  a[2] = 0
-    
-
-
-    """import tensorflow as tf
-    from tensorflow import keras
-    from tensorflow.keras import layers
-
-    num_inputs = 13
-    num_actions = 9
-    num_hidden = 128
-
-    action_choices = [[0,1,0],[0,0,1],[0,0,0],[1,1,0],[1,0,1],[1,0,0],[-1,1,0],[-1,0,1],[-1,0,0]]
-
-    inputs = layers.Input(shape=(num_inputs,))
-    common = layers.Dense(num_hidden, activation="relu")(inputs)
-    action = layers.Dense(num_actions, activation="softmax")(common)
-    critic = layers.Dense(1)(common)
-
-    model = keras.Model(inputs=inputs, outputs=[action, critic])"""
-
-
 
 
     env = CarRacing()
