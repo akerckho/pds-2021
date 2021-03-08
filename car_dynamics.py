@@ -26,26 +26,21 @@ SENSORPOS = [ #add sensors around car
     
 
 angles = [40,50,60,70,77  ,88,90,92, 103,110,120,130,140]
-
-pos = (2500, 0)
+length = 2500 # length of sensors
+pos = (length, 0)
 
 SENSOR_NB = len(angles)
 sensor_angle = []
 
 def create(pos, angle):
     rad = math.radians(angle)
-    R = array([
+    R = array([                     # rotation matrix
         [cos(rad), -sin(rad)],
         [sin(rad), cos(rad)]])
     return dot(R, pos)
 
 
 n = 20
-frac = n * (3/4)
-angle_lazer = [85, 90, 95]
-dense = 0
-m = 1
-
     
 for i in range(0, n):
     for angle in angles:
@@ -80,7 +75,7 @@ MUD_COLOR = (0.4, 0.4, 0.0)
 
 
 class Car:
-    def __init__(self, world, init_angle, init_x, init_y):
+    def __init__(self, world, init_angle, init_x, init_y, sensors_activated = True):
         self.world = world
         self.hull = self.world.CreateDynamicBody(
             position=(init_x, init_y),
@@ -137,6 +132,12 @@ class Car:
             w.tiles = set()
             w.userData = w
             self.wheels.append(w)
+        if sensors_activated:
+            self.create_sensors(init_angle, init_x, init_y, WHEEL_POLY)
+        self.drawlist = self.sensors + self.wheels + [self.hull]
+        self.particles = []
+
+    def create_sensors(self, init_angle, init_x, init_y, WHEEL_POLY):
         for wx, wy in SENSORPOS: #create sensors around car
             front_k = 1.0 if wy > 0 else 1.0
             w = self.world.CreateDynamicBody(
@@ -168,8 +169,6 @@ class Car:
             w.tiles = set()
             w.userData = w
             self.sensors.append(w)
-        self.drawlist = self.sensors + self.wheels + [self.hull]
-        self.particles = []
 
     def gas(self, gas):
         """control: rear wheel drive
