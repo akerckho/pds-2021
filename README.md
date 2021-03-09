@@ -60,6 +60,8 @@ Vous pouvez lancer l'entraînement et son affichage graphique grâce à : <br>
 
 ### Réseau neuronal convolutif
 
+<div align=center><Image src="Results/CNN_2000epochs.png" width="50%"/></
+
 <div align=center><img src="Results/CNN.gif" width="50%"/></div>
 
 ### Actor Critic
