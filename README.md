@@ -59,6 +59,9 @@ Vous pouvez lancer l'entraînement et son affichage graphique grâce à : <br>
 ## :checkered_flag: Performance
 
 ### Réseau neuronal convolutif
+Ici puisque la voiture est entrainée à partir d'images et ne s'entraine pas vraiment sur l'environnement gym, il n'est pas possible d'avoir le nombre de tiles parcourues.
+Les courbes bleue et rouge indiquent le taux de précision du réseau neuronal, respectivement, sur le test set et le training set à avoir effectué les même déplacements que sur les labels des images.
+
 
 <div align=center><Image src="Results/CNN_2000epochs.png" width="50%"/></
 
