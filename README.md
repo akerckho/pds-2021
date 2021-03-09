@@ -67,6 +67,18 @@ Les courbes bleue et rouge indiquent le taux de précision du réseau neuronal, 
 
 <div align=center><img src="Results/CNN.gif" width="50%"/></div>
 
+```
+CarbonTracker: The following components were found: GPU with device(s) GeForce RTX 2060.
+CarbonTracker: Average carbon intensity during training was 294.21 gCO2/kWh at detected location: Drogenbos, Flanders, BE.
+CarbonTracker: 
+Actual consumption for 2000 epoch(s):
+	Time:	10:58:27
+	Energy:	0.638847 kWh
+	CO2eq:	187.952590 g
+	This is equivalent to:
+	1.561068 km travelled by car
+```
+
 ### Actor Critic
 ```
 CarbonTracker: The following components were found: GPU with device(s) GeForce GTX 1070.
