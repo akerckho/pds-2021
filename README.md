@@ -27,6 +27,7 @@ Ce projet à été réalisé dans le cadre du Printemps des Sciences, un événe
 
 Pour faire tourner les différents modèles vous aurez besoin de ces modules, tous instalables via le gestionnaire de paquets *pip*. 
 - numpy
+- matplotlib
 - torch
 - torchvision
 - imageio

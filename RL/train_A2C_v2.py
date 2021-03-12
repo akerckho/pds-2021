@@ -4,6 +4,7 @@ https://github.com/philtabor/Actor-Critic-Methods-Paper-To-Code/tree/master/Acto
 """
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 import sys
 import copy
 from A2C_v2 import Agent, OUActionNoise
@@ -16,6 +17,16 @@ sys.path.insert(0,parentdir)
 
 from car_racing import *
 
+
+def plot_bar_and_mean(raw_lst, mean_lst, lr, gamma, fig_name):
+    x = [i for i in range(len(raw_lst))]
+    plt.bar(x, raw_lst)
+    plt.plot(x, mean_lst, color="tab:red")
+    
+    plt.title("Learning rate = {}, gamma = {}".format(lr, gamma))
+    plt.xlabel("Epoque")
+    plt.ylabel("Nombre de tiles parcourues")
+    plt.savefig(fig_name)
 
 def reward_manage(reward, state, action, speed):
     """
@@ -57,13 +68,14 @@ if __name__ == '__main__':
     env = CarRacing(verbose=0)
     env.seed(SEED)
     l_rate = 0.000008
+    gamma = 0.99
 
-    agent = Agent(gamma=0.99, lr=l_rate, input_dims=[inputs], n_actions=4, fc1_dims=2048, fc2_dims=1024)
+    agent = Agent(gamma=gamma, lr=l_rate, input_dims=[inputs], n_actions=4, fc1_dims=2048, fc2_dims=1024)
     if len(sys.argv) > 1:
     	model_weight = sys.argv[1]  	
     	agent.load_model(model_weight)
 
-    n_games = 1
+    n_games = 2000
 
     frame_number = 0
     tile_visited_history = []
@@ -112,6 +124,7 @@ if __name__ == '__main__':
             tiles_visited = env.tile_visited_count
             max_tiles = max(max_tiles, tiles_visited)
 
+        ## RUNTIME INFORMATION
         print("Episode {} : Score = {} ".format(ep, score))
         print("Tiles visited : {} (max {}) ".format(tiles_visited, max_tiles))
 
@@ -124,6 +137,7 @@ if __name__ == '__main__':
 
     tracker.stop()
 
+    ## LOGS 
     print("Historique des nombres de tiles visitées par épisode : ")
     print(tile_visited_history)
     print()
@@ -132,6 +146,11 @@ if __name__ == '__main__':
     print(avg_tile_visited_history)
     print()
 
+    ## PLOT
+    savename = "A2C_{}epochs_{}lr_{}gamma.png".format(n_games, l_rate, gamma)
+    plot_bar_and_mean(tile_visited_history, avg_tile_visited_history, l_rate, gamma, savename )
+
+    ## SAVE MODEL
     model = copy.deepcopy(agent.get_model().state_dict())
     torch.save(model, "modelA2Cv2/unnamed")
 
