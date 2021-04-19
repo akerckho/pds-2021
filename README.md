@@ -14,11 +14,9 @@ Ce projet à été réalisé dans le cadre du Printemps des Sciences, un événe
 
 ## :question: Mais comment ?
 
-- A l'aide de 2 modèles totalement différents :
-	- Un réseau neuronal convolutif (apprentissage supervisé) : l'entraînement nécessite un recueil de "screenshots + action associée", enregistré pendant qu'un joueur joue réellement sur l'environnement car_racing. Sur base de ces informations, le modèle va prendre ses décisions par reconnaissance d'images.
-	- Un modèle d'apprentissage par renforcement : le modèle Actor Critic (A2C). Le modèle prend cette fois-ci ses décisions à partir de l'état composé de :
-		- La vitesse de la voiture
-		- Les distances déterminées par nos 13 sensors
+- A l'aide d'un modèle d'apprentissage par renforcement : le modèle Actor Critic (A2C). Le modèle prend cette fois-ci ses décisions à partir de l'état composé de :
+	- La vitesse de la voiture
+	- Les distances déterminées par nos 13 sensors
 
 
 ## :exclamation: Testez chez vous !
@@ -36,21 +34,6 @@ Pour faire tourner les différents modèles vous aurez besoin de ces modules, to
 - Box2D
 - carbontracker (vous aurez peut-être besoin de : ```sudo chmod a+r /sys/class/powercap/intel-rapl:0/energy_uj```)
 
-### Réseau neuronal convolutif
-Pour entrainer cette IA il faut procéder en plusieurs étapes.
-
-* Enregistrer un set d'entrainement
-  - python3 record_dataset.py train_set 
-
-* Enregistrer un set de teste
-  - python3 record_dataset.py test_set
-
-* Entrainer l'IA
-  - python3 train.py
-
-* Voir les progrès de l'IA sur l'un des poids(ses neurones) enregistrés lors de l'entrainement
-  - python3 drive.py path/models2/model-x.weights
-
 ### Actor Critic
 
 Vous pouvez lancer l'entraînement et son affichage graphique grâce à : <br>
@@ -58,27 +41,6 @@ Vous pouvez lancer l'entraînement et son affichage graphique grâce à : <br>
 
 
 ## :checkered_flag: Performance
-
-### Réseau neuronal convolutif
-Ici puisque la voiture est entrainée à partir d'images et ne s'entraine pas vraiment sur l'environnement gym, il n'est pas possible d'avoir le nombre de tiles parcourues.
-Les courbes bleue et rouge indiquent le taux de précision du réseau neuronal, respectivement, sur le test set et le training set à avoir effectué les même déplacements que sur les labels des images.
-
-
-<div align=center><Image src="Results/CNN_2000epochs.png" width="50%"/></
-
-<div align=center><img src="Results/CNN.gif" width="50%"/></div>
-
-```
-CarbonTracker: The following components were found: GPU with device(s) GeForce RTX 2060.
-CarbonTracker: Average carbon intensity during training was 294.21 gCO2/kWh at detected location: Drogenbos, Flanders, BE.
-CarbonTracker: 
-Actual consumption for 2000 epoch(s):
-	Time:	10:58:27
-	Energy:	0.638847 kWh
-	CO2eq:	187.952590 g
-	This is equivalent to:
-	1.561068 km travelled by car
-```
 
 ### Actor Critic
 ```

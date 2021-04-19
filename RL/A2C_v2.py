@@ -10,41 +10,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 
-class OUActionNoise:
-    """
-    'To implement better exploration by the Actor network, we use noisy 
-    perturbations, specifically an Ornstein-Uhlenbeck process for generating 
-    noise, as described in the paper. It samples noise from a correlated 
-    normal distribution.'
-    """
-    
-    def __init__(self, mean, std_deviation, theta=0.15, dt=1e-2, x_initial=None):
-        self.theta = theta
-        self.mean = mean
-        self.std_dev = std_deviation
-        self.dt = dt
-        self.x_initial = x_initial
-        self.reset()
-
-    def __call__(self):
-        # Formula taken from https://www.wikipedia.org/wiki/Ornstein-Uhlenbeck_process.
-        x = (
-            self.x_prev
-            + self.theta * (self.mean - self.x_prev) * self.dt
-            + self.std_dev * np.sqrt(self.dt) * np.random.normal(size=self.mean.shape)
-        )
-        # Store x into x_prev
-        # Makes next noise dependent on current one
-        self.x_prev = x
-        return x
-
-    def reset(self):
-        if self.x_initial is not None:
-            self.x_prev = self.x_initial
-        else:
-            self.x_prev = np.zeros_like(self.mean)
-
-
 class ActorCriticNetwork(nn.Module):
     def __init__(self, lr, input_dims, n_actions, fc1_dims=256, fc2_dims=256):
         super(ActorCriticNetwork, self).__init__()
@@ -53,7 +18,6 @@ class ActorCriticNetwork(nn.Module):
         self.pi = nn.Linear(fc2_dims, n_actions)
         self.v = nn.Linear(fc2_dims, 1)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
-        print("Cuda {}".format(T.cuda.is_available()))
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
@@ -67,15 +31,18 @@ class ActorCriticNetwork(nn.Module):
 
 
 class Agent():
-    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions, 
+    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions, seed, 
                  gamma=0.99):
+
+        np.random.seed(seed)
+        torch.manual_seed(seed)
         self.gamma = gamma
         self.lr = lr
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
         self.actor_critic = ActorCriticNetwork(lr, input_dims, n_actions, 
                                                fc1_dims, fc2_dims)
-        self.log_prob = None
+        self.log_prob = None  
 
     def choose_action(self, observation):
 

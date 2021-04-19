@@ -65,7 +65,7 @@ BORDER = 0/SCALE
 BORDER_MIN_COUNT = 10   
 Amount_Left = 0
 
-OBSTACLE_PROB = 1/25
+OBSTACLE_PROB = 1/25  # modifiable à l'init de CarRacing
 
 ROAD_COLOR = [0.4, 0.4, 0.4]
 
@@ -122,7 +122,7 @@ class CarRacing(gym.Env, EzPickle):
         'video.frames_per_second': FPS
     }
 
-    def __init__(self, verbose=1, sensors_activated = True):
+    def __init__(self, obstacle_prob, verbose=1, sensors_activated = True):
         EzPickle.__init__(self)
         self.obstacles_positions = [] # sera rempli de 4-tuples contenant la position de chaque mur
         self.seed()
@@ -156,6 +156,8 @@ class CarRacing(gym.Env, EzPickle):
             dtype=np.uint8
         )
         self.random_obs = 0
+        global OBSTACLE_PROB 
+        OBSTACLE_PROB = obstacle_prob
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -758,8 +760,7 @@ if __name__ == "__main__":
         
         while True:
 
-
-            s,r, done, speed = env.step(a)
+            s,r, done = env.step(a)
 
             total_reward += r
             if steps % 200 == 0 or done:
