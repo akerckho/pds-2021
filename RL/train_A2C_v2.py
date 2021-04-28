@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     l_rate = 0.000008
     gamma = 0.99
-    n_games = 3
+    n_games = 2000
 
     agent = Agent(gamma=gamma, lr=l_rate, input_dims=[inputs], n_actions=4, seed=iteration_seed, fc1_dims=2048, fc2_dims=1024)
     
@@ -129,11 +129,11 @@ if __name__ == '__main__':
     #tracker.stop()
 
     ## LOGS  
-    with open('tilesVisited.csv', 'a+', newline ='') as tv_file:    
+    with open(str(obstacle_prob) + '_tilesVisited.csv', 'a+', newline ='') as tv_file:    
         write = csv.writer(tv_file)
         write.writerow(tile_visited_history)
 
-    with open('tilesVisitedAverage.csv', 'a+', newline ='') as tva_file:    
+    with open(str(obstacle_prob) + '_tilesVisitedAverage.csv', 'a+', newline ='') as tva_file:    
         write = csv.writer(tva_file)
         write.writerow(avg_tile_visited_history)
 
