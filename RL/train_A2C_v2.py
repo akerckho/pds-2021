@@ -23,7 +23,6 @@ def plot_bar_and_mean(raw_lst, mean_lst, lr, gamma, fig_name):
     x = [i for i in range(len(raw_lst))]
     plt.bar(x, raw_lst)
     plt.plot(x, mean_lst, color="tab:red")
-    
     plt.title("Learning rate = {}, gamma = {}".format(lr, gamma))
     plt.xlabel("Epoque")
     plt.ylabel("Nombre de tiles parcourues")
