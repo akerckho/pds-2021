@@ -7,16 +7,23 @@ class Ploter():
         self.lr = learning_rate
         self.gamma = gamma
 
-        path_test_raw = "Results/5%/0.05_tilesVisited.csv"
-        path_test_mean = "Results/5%/0.05_tilesVisitedAverage.csv"
+        path_test_raw = "Results/50%/0.5_tilesVisited.csv"
+        path_test_mean = "Results/50%/0.5_tilesVisitedAverage.csv"
         fig_name = ["test0.png", "test1.png", "test2.png", "test3.png", "test4.png"]
 
         raw_test = self.load_from_file(path_test_raw)
         mean_test = self.load_from_file(path_test_mean)
         #for i in range(5): # files contains 5 iterations 
         #    self.plot_bar_and_mean(raw_test[i], mean_test[i], fig_name[i])
+
+        self.evolutive_mean_test = self.evolutive_mean(raw_test)
+        
+        for i in range(5): # files contains 5 iterations 
+            self.plot_bar_and_mean(raw_test[i], self.evolutive_mean_test[i], fig_name[i])
+
         
         self.plot_mean_over_files(self.mean_over_files(mean_test), 5, "testMeanOverFiles.png")
+        self.plot_mean_over_files(self.mean_over_files(self.evolutive_mean_test), 5, "testEvolutiveMeanOverFiles.png")
         
         
 
@@ -45,6 +52,15 @@ class Ploter():
         plt.savefig(fig_name)
         plt.cla()
         plt.clf()
+
+    def evolutive_mean(self, raw_lst):
+        ret = [[0 for i in range(2000)] for i in range(5)]
+        for i in range(5):
+            for j in range(1, 2001):
+                ret[i][j-1] = sum(raw_lst[i][:j])/j
+        
+        return ret 
+
 
 
     def mean_over_files(self, files_lst):
