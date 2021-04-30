@@ -25,7 +25,7 @@ SENSORPOS = [ #add sensors around car
     ]
     
 
-angles = [40,50,60,70,77  ,88,90,92, 103,110,120,130,140]
+angles = [40,50,60,70,77,  88,90,92,  103,110,120,130,140]
 length = 2500 # length of sensors
 pos = (length, 0)
 
@@ -45,7 +45,7 @@ n = 20
 for i in range(0, n):
     for angle in angles:
         v = create(pos, angle)
-        SENSORPOS.append((v[0]*(i/n), v[1]*(i/n)))
+        SENSORPOS.append((v[0]*(i/n), v[1]*(i/n)-100))
 
 HULL_POLY1 = [
     (-60, +130), (+60, +130),

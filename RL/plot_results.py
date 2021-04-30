@@ -7,8 +7,8 @@ class Ploter():
         self.lr = learning_rate
         self.gamma = gamma
 
-        path_test_raw = "Results/50%/0.5_tilesVisited.csv"
-        path_test_mean = "Results/50%/0.5_tilesVisitedAverage.csv"
+        path_test_raw = "0.05_4e-06_0.99_tilesVisited.csv"
+        path_test_mean = "0.05_4e-06_0.99_tilesVisitedAverage.csv"
         fig_name = ["test0.png", "test1.png", "test2.png", "test3.png", "test4.png"]
 
         raw_test = self.load_from_file(path_test_raw)

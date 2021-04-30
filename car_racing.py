@@ -475,6 +475,7 @@ class CarRacing(gym.Env, EzPickle):
                         if not wall[i%SENSOR_NB]:
                             state[i%SENSOR_NB] = np.linalg.norm(point1-point2)
                             wall[i%SENSOR_NB] = True
+                            
                     
         true_speed = np.sqrt(
             np.square(self.car.hull.linearVelocity[0])

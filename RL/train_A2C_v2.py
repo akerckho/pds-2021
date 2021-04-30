@@ -53,10 +53,10 @@ def reward_manage(reward, state, action, speed):
         if speed < 5:
             reward -= 20  # on reste pas à l'arrêt par contre
     elif good_move in good_move_mapper[action]:
-        reward += 15
+        reward += 10
     else:
         reward -= 20
-
+    
     return reward
 
 
@@ -68,17 +68,17 @@ if __name__ == '__main__':
     
 
     if len(sys.argv) != 3:
-        print("A parameter is missing. Please enter seed then obstacle porbability.\nInterupting.")
+        print("A parameter is missing. Please enter seed then obstacle probability.\nInterupting.")
         sys.exit()
     
     iteration_seed = int(sys.argv[1])
     obstacle_prob = float(sys.argv[2])
 
-    l_rate = 0.000008
+    l_rate = 0.000004
     gamma = 0.99
     n_games = 2000
 
-    agent = Agent(gamma=gamma, lr=l_rate, input_dims=[inputs], n_actions=4, seed=iteration_seed, fc1_dims=2048, fc2_dims=1024)
+    agent = Agent(gamma=gamma, lr=l_rate, input_dims=[inputs], n_actions=4, seed=iteration_seed, fc1_dims=2048, fc2_dims=512)
     
     env = CarRacing(obstacle_prob, verbose=0)
     env.seed(ENVIRONMENT_SEED)
@@ -96,7 +96,6 @@ if __name__ == '__main__':
         score = 0
         
         while not done:
-            
             pre = env.tile_visited_count
             
             action, bonus = agent.choose_action(observation)   
@@ -128,11 +127,11 @@ if __name__ == '__main__':
     #tracker.stop()
 
     ## LOGS  
-    with open(str(obstacle_prob) + '_tilesVisited.csv', 'a+', newline ='') as tv_file:    
+    with open(f"{obstacle_prob}_{l_rate}_{gamma}_tilesVisited.csv", 'a+', newline ='') as tv_file:    
         write = csv.writer(tv_file)
         write.writerow(tile_visited_history)
 
-    with open(str(obstacle_prob) + '_tilesVisitedAverage.csv', 'a+', newline ='') as tva_file:    
+    with open(f"{obstacle_prob}_{l_rate}_{gamma}_tilesVisitedAverage.csv", 'a+', newline ='') as tva_file:    
         write = csv.writer(tva_file)
         write.writerow(avg_tile_visited_history)
 
