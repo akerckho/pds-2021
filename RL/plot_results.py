@@ -3,27 +3,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class Ploter():
-    def __init__(self, learning_rate, gamma):
+    def __init__(self, learning_rate, gamma, wall_rate):
         self.lr = learning_rate
         self.gamma = gamma
+        self.wr = wall_rate
 
-        path_test_raw = "0.05_4e-06_0.99_tilesVisited.csv"
-        path_test_mean = "0.05_4e-06_0.99_tilesVisitedAverage.csv"
+        path_test_raw = "Results/50%/0.5_1e-06_0.5_tilesVisited.csv"
+        path_test_mean = "Results/50%/0.5_1e-06_0.5_tilesVisitedAverage.csv"
         fig_name = ["test0.png", "test1.png", "test2.png", "test3.png", "test4.png"]
 
         raw_test = self.load_from_file(path_test_raw)
         mean_test = self.load_from_file(path_test_mean)
-        #for i in range(5): # files contains 5 iterations 
-        #    self.plot_bar_and_mean(raw_test[i], mean_test[i], fig_name[i])
+        for i in range(5): # files contains 5 iterations 
+            self.plot_bar_and_mean(raw_test[i], mean_test[i], fig_name[i])
 
         self.evolutive_mean_test = self.evolutive_mean(raw_test)
         
-        for i in range(5): # files contains 5 iterations 
-            self.plot_bar_and_mean(raw_test[i], self.evolutive_mean_test[i], fig_name[i])
+        #for i in range(5): # files contains 5 iterations 
+        #    self.plot_bar_and_mean(raw_test[i], self.evolutive_mean_test[i], fig_name[i])
 
         
-        self.plot_mean_over_files(self.mean_over_files(mean_test), 5, "testMeanOverFiles.png")
-        self.plot_mean_over_files(self.mean_over_files(self.evolutive_mean_test), 5, "testEvolutiveMeanOverFiles.png")
+        #self.plot_mean_over_files(self.mean_over_files(mean_test), self.wr, "testMeanOverFiles.png")
+        self.plot_mean_over_files(self.mean_over_files(self.evolutive_mean_test), self.wr, "new_version_50%.png")
         
         
 
@@ -79,5 +80,5 @@ class Ploter():
 
 
 if __name__ == '__main__':
-    Ploter(0.000008, 0.99)
+    Ploter(0.000008, 0.99, 0.05)
     

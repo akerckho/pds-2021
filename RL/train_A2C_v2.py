@@ -74,8 +74,8 @@ if __name__ == '__main__':
     iteration_seed = int(sys.argv[1])
     obstacle_prob = float(sys.argv[2])
 
-    l_rate = 0.000004
-    gamma = 0.99
+    l_rate = 0.000001
+    gamma = 0.50
     n_games = 2000
 
     agent = Agent(gamma=gamma, lr=l_rate, input_dims=[inputs], n_actions=4, seed=iteration_seed, fc1_dims=2048, fc2_dims=512)
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         
         while not done:
             pre = env.tile_visited_count
-            
+            #env.render()
             action, bonus = agent.choose_action(observation)   
             a = action_choices[action]
             pre = env.tile_visited_count
