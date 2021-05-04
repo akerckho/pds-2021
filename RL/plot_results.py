@@ -120,7 +120,7 @@ class Ploter():
         plt.plot(x, mean_over_files_lst[2], color="tab:blue", label="20%")
         plt.plot(x, mean_over_files_lst[3], color="tab:orange", label="50%")
         plt.plot(x, mean_over_files_lst[4], color="tab:purple", label="100%")
-        plt.title(f"Moyenne sur 5 entraînements.\n Learning rate = {self.lr}, gamma = {self.gamma}")
+        plt.title(f"Comparaison des paramètres d'apparitions de murs. \n Moyenne sur 5 entraînements (learning rate = {self.lr}, gamma = {self.gamma})")
         plt.xlabel("Epoque")
         plt.ylabel("Nombre de tiles parcourues")
         
